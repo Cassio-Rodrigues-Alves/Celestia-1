@@ -65,21 +65,17 @@ class TangoV21(tf.keras.layers.Layer):
             u_facts = xf
             beta_t = tf.cast(self.beta, h.dtype)
             eta_t = tf.cast(self.eta, h.dtype)
-            s_traj = []
             for t in range(3):
                 xl_t = h[..., :self.d_logic]
                 f_h = tf.matmul(xl_t, self.w_stone)
                 f_full = tf.concat([f_h, tf.zeros_like(h[..., self.d_logic:])], -1)
                 g_logic = h - f_full
-                g_facts = h[..., self.d_logic:] - u_facts  # fact ancorado: sem tangente
                 noise = tf.random.normal(tf.shape(h), dtype=h.dtype)
                 ns = tf.cast(tf.sqrt(2.0 * self.eta / beta_t), h.dtype)
                 h_logic_next = xl_t - eta_t * g_logic[..., :self.d_logic] + noise[..., :self.d_logic] * ns
                 h_facts_next = (1.0 - eta_t) * h[..., self.d_logic:] + eta_t * u_facts
                 h = tf.concat([h_logic_next, h_facts_next], -1)
                 beta_t = beta_t * 1.05
-                s_traj.append(float(tf.reduce_mean(tf.abs(h)).numpy()) if not tf.executing_eagerly_outside_functions() else None)
-            self._s_last = [s for s in s_traj if s is not None]
             h_logic, h_facts = h[..., :self.d_logic], h[..., self.d_logic:]
         h_out = tf.concat([h_logic, h_facts], -1)
         return self.layer_scale * h_out * tf.nn.sigmoid(self.gate)

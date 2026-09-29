@@ -31,23 +31,16 @@ class TangoV21(tf.keras.layers.Layer):
         self.w_hu = self.add_weight(shape=(self.d_logic, self.d_facts), initializer="zeros", name="w_hu")
         self.w_uh = self.add_weight(shape=(self.d_facts, self.d_logic), initializer="zeros", name="w_uh")
         self.w_uu = self.add_weight(shape=(self.d_facts, self.d_facts), initializer="zeros", name="w_uu")
-        # fix scratch-graph: guarda numpy, reconstrói SparseTensor no call
-        A = self._causal_sw_np()
-        idx = np.stack(np.where(A > 0), -1).astype(np.int64)
-        self._A_idx = idx; self._A_val = A[A > 0].astype(np.float32)
-        self._A_shape = np.array([SEQ_LEN, SEQ_LEN], np.int64)
+        # fix scratch-graph: guarda numpy denso, fatia p/ L real no call
+        self._A_np = self._causal_sw_np()
         self.gate = self.add_weight(shape=(dim,), initializer="ones", name="gate")
         super().build(input_shape)
 
     def _sparse_mix(self, x_norm):
-        # x: [B,L,D] -> mistura por posição via adj esparsa
-        st = tf.sparse.SparseTensor(
-            indices=self._A_idx, values=tf.cast(self._A_val, x_norm.dtype),
-            dense_shape=self._A_shape)
-        st = tf.sparse.reorder(st)
-        def mix_one(b):  # [L,D]
-            return tf.sparse.sparse_dense_matmul(st, b)
-        return tf.map_fn(mix_one, x_norm)
+        # x: [B,L,D], A: [128,128] -> fatia [:L,:L]
+        L = tf.shape(x_norm)[1]
+        A = tf.cast(tf.constant(self._A_np)[:L, :L], x_norm.dtype)
+        return tf.einsum('ij,bjd->bid', A, x_norm)
 
     def call(self, x, introspection_active=False, training=False):
         x_norm = self.norm(x)

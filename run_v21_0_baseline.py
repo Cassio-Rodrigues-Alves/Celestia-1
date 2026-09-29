@@ -59,3 +59,33 @@ pathlib.Path(f"bundles/{ver}/teste_contexto.log").write_text(
     f"{v21line}\n"
     f"u_tan==u_facts: ANCORADO (por construção)\n")
 print(f"[{ver}] fumaça telemetria ok -> {out} r={r:.3f} lyap={lyap}\n{v21line}")
+
+# --- treino fumaça tiny: 50 steps, batch 2, seq 32, vocab 512 reduzido p/ caber ---
+try:
+    import tensorflow as tf
+    from model_v21 import ConsciousV21
+    tf.random.set_seed(cfg["seeds"][0])
+    m2 = ConsciousV21()
+    opt = tf.keras.optimizers.Adam(1e-4, clipnorm=cfg["clip_norm"])
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    B, L, STEPS, V = 2, 32, 50, 512
+    xb = tf.random.uniform((B, L), 0, V, dtype=tf.int32)
+    n_clip = 0
+    for s in range(STEPS):
+        with tf.GradientTape() as tape:
+            logits = m2(xb, training=True)
+            # pred next-token truncado p/ V tiny
+            loss = loss_fn(xb[:, 1:], logits[:, :-1, :V])
+            loss += sum(m2.losses)
+        grads = tape.gradient(loss, m2.trainable_variables)
+        gn = float(tf.linalg.global_norm([g for g in grads if g is not None]))
+        if gn > cfg["clip_norm"]:
+            n_clip += 1
+        opt.apply_gradients(zip(grads, m2.trainable_variables))
+        if s % 10 == 0:
+            print(f" step {s}: loss={float(loss):.3f} gn={gn:.3f}", flush=True)
+    smoke = f"smoke 50steps ok loss={float(loss):.3f} clip_rate={n_clip/STEPS:.2f} gn={gn:.3f}"
+    print(smoke)
+    open(f"bundles/{ver}/teste_contexto.log", "a").write(smoke + "\n")
+except Exception as e:
+    print(f"smoke FALHOU: {type(e).__name__}: {e}")

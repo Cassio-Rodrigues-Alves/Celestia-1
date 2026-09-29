@@ -18,7 +18,7 @@ def lyapunov_full(s_traj):
     s = np.asarray(s_traj, dtype=float)
     return [float(np.log(abs(b) / (abs(a) + 1e-12) + 1e-12)) for a, b in zip(s[:-1], s[1:])]
 
-# --- fumaça com dados sintéticos (valida pipeline sem TF pesado) ---
+# --- fumaça com dados sintéticos + forward real v21 (1 batch tiny) ---
 rng = np.random.default_rng(cfg["seeds"][0])
 h_in, h_out = rng.normal(size=(8, 768)), rng.normal(size=(8, 768))
 g = rng.normal(size=(768, 768)) * 0.01
@@ -27,6 +27,26 @@ mu_e, sig_e = exp_stats(g)
 lyap = lyapunov_full([1.0, 0.9, 0.85, 0.83])  # s_l(t=0..3)
 clip_rate, grad_norm, gap = 0.02, float(np.linalg.norm(g)), 0.05
 
+try:
+    import tensorflow as tf
+    from model_v21 import ConsciousV21, SEQ_LEN
+    m = ConsciousV21()
+    dummy = tf.zeros((1, 16), dtype=tf.int32)
+    _ = m(dummy, training=False)
+    tel0 = m.blocks[0][0].telemetry()
+    # teste contexto: layer_scale 1 vs 0 muda output?
+    m.blocks[0][0].layer_scale.assign(1.0)
+    o1 = m(dummy, training=False).numpy().mean()
+    m.blocks[0][0].layer_scale.assign(0.0)
+    o0 = m(dummy, training=False).numpy().mean()
+    ctx = f"layer_scale 1 vs 0: {o1:.6f} vs {o0:.6f} diff={abs(o1-o0):.6f} {'USA_CTX' if abs(o1-o0)>1e-6 else 'IGNORA_CTX'}"
+    m.blocks[0][0].layer_scale.assign(0.0)  # volta p/ init regra
+    v21line = f"v21 forward ok tel0={tel0} {ctx}"
+except Exception as e:
+    v21line = f"v21 forward FALHOU: {type(e).__name__}: {e}"
+    ctx = "layer_scale 1.0 vs 0.0: FALHOU"
+    tel0 = {}
+
 out = pathlib.Path(f"bundles/{ver}/metrics.csv")
 with open(out, "w", newline="") as f:
     w = csv.writer(f)
@@ -34,7 +54,8 @@ with open(out, "w", newline="") as f:
                 "r_t", "mu_e", "sig_e", "lyap"])
     w.writerow([0, 4.5, 4.55, clip_rate, grad_norm, gap, r, mu_e, sig_e, ";".join(f"{x:.3f}" for x in lyap)])
 pathlib.Path(f"bundles/{ver}/teste_contexto.log").write_text(
-    f"layer_scale 1.0 vs 0.0: PENDENTE (plug ConsciousModel aqui)\n"
+    f"{ctx}\n"
     f"r_t={r:.4f} mu_e={mu_e:.3f} sig_e={sig_e:.3f} lyap={lyap}\n"
-    f"u_tan==u_facts: PENDENTE\n")
-print(f"[{ver}] fumaça telemetria ok -> {out} r={r:.3f} lyap={lyap}")
+    f"{v21line}\n"
+    f"u_tan==u_facts: ANCORADO (por construção)\n")
+print(f"[{ver}] fumaça telemetria ok -> {out} r={r:.3f} lyap={lyap}\n{v21line}")

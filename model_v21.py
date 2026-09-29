@@ -4,9 +4,10 @@ from legacy_model_reference import PreLNFFN  # noqa
 VOCAB_SIZE, D_MODEL, LAYERS, SEQ_LEN = 32000, 768, 12, 128
 
 class TangoV21(tf.keras.layers.Layer):
-    def __init__(self, d_model, beta_start=0.15, eta=0.005, **kw):
+    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, **kw):
         super().__init__(**kw)
         self.d_model, self.eta = d_model, eta
+        self.coupling, self.coupling_scale = coupling, coupling_scale
         self.beta = tf.Variable(beta_start, trainable=False, dtype=tf.float32)
         self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         # ponytail: layer_scale=0 init, 1 escalar por camada
@@ -27,10 +28,12 @@ class TangoV21(tf.keras.layers.Layer):
         dim = input_shape[-1]
         self.d_logic = int(dim*0.95); self.d_facts = dim - self.d_logic
         self.w_stone = self.add_weight(shape=(self.d_logic, self.d_logic), initializer="orthogonal", name="stone")
-        # acoplamento assimétrico (não transposto) — desligado na baseline (frozen)
-        self.w_hu = self.add_weight(shape=(self.d_logic, self.d_facts), initializer="zeros", trainable=False, name="w_hu")
-        self.w_uh = self.add_weight(shape=(self.d_facts, self.d_logic), initializer="zeros", trainable=False, name="w_uh")
-        self.w_uu = self.add_weight(shape=(self.d_facts, self.d_facts), initializer="zeros", trainable=False, name="w_uu")
+        # acoplamento assimétrico: frozen na baseline, trainável pequeno na v21.1
+        tr = bool(getattr(self, "coupling", False))
+        init = tf.keras.initializers.RandomNormal(stddev=getattr(self, "coupling_scale", 0.01)) if tr else "zeros"
+        self.w_hu = self.add_weight(shape=(self.d_logic, self.d_facts), initializer=init, trainable=tr, name="w_hu")
+        self.w_uh = self.add_weight(shape=(self.d_facts, self.d_logic), initializer=init, trainable=tr, name="w_uh")
+        self.w_uu = self.add_weight(shape=(self.d_facts, self.d_facts), initializer=init, trainable=tr, name="w_uu")
         # fix scratch-graph: guarda numpy denso, fatia p/ L real no call
         self._A_np = self._causal_sw_np()
         self.gate = self.add_weight(shape=(dim,), initializer="ones", name="gate")
@@ -48,9 +51,14 @@ class TangoV21(tf.keras.layers.Layer):
         if training:
             w32 = tf.cast(self.w_stone, tf.float32)
             self.add_loss(1e-4 * tf.reduce_mean(tf.square(tf.matmul(w32, w32, transpose_a=True) - tf.eye(self.d_logic, dtype=tf.float32))))
-        # facts ancorado: u_tan == u_facts (idêntico, sem retreino)
-        h_logic = tf.matmul(x_mixed[..., :self.d_logic], self.w_stone)
-        h_out = tf.concat([h_logic, x_mixed[..., self.d_logic:]], -1)
+        # facts ancorado na baseline; com coupling, mistura pequena bidirecional
+        xl, xf = x_mixed[..., :self.d_logic], x_mixed[..., self.d_logic:]
+        h_logic = tf.matmul(xl, self.w_stone)
+        h_facts = xf
+        if bool(getattr(self, "coupling", False)):
+            h_logic = h_logic + tf.matmul(xf, self.w_uh)
+            h_facts = xf + tf.matmul(xl, self.w_hu) * 0.1 + tf.matmul(xf, self.w_uu) * 0.1
+        h_out = tf.concat([h_logic, h_facts], -1)
         return self.layer_scale * h_out * tf.nn.sigmoid(self.gate)
 
     def telemetry(self):
@@ -60,11 +68,11 @@ class TangoV21(tf.keras.layers.Layer):
         return {"nhu": float(np.linalg.norm(self.w_hu.numpy())), "nuh": float(np.linalg.norm(self.w_uh.numpy())), "eig_stone": eig}
 
 class ConsciousV21(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, coupling=False):
         super().__init__()
         self.embed = tf.keras.layers.Embedding(VOCAB_SIZE, D_MODEL)
         self.pos = tf.keras.layers.Embedding(SEQ_LEN, D_MODEL)
-        self.blocks = [(TangoV21(D_MODEL, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
+        self.blocks = [(TangoV21(D_MODEL, coupling=coupling, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
         self.ln = tf.keras.layers.LayerNormalization(dtype="float32")
         self.head = tf.keras.layers.Dense(VOCAB_SIZE, dtype="float32")
     def call(self, inp, training=False, introspection_active=False):

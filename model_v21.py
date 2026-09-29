@@ -27,10 +27,10 @@ class TangoV21(tf.keras.layers.Layer):
         dim = input_shape[-1]
         self.d_logic = int(dim*0.95); self.d_facts = dim - self.d_logic
         self.w_stone = self.add_weight(shape=(self.d_logic, self.d_logic), initializer="orthogonal", name="stone")
-        # acoplamento assimétrico (não transposto)
-        self.w_hu = self.add_weight(shape=(self.d_logic, self.d_facts), initializer="zeros", name="w_hu")
-        self.w_uh = self.add_weight(shape=(self.d_facts, self.d_logic), initializer="zeros", name="w_uh")
-        self.w_uu = self.add_weight(shape=(self.d_facts, self.d_facts), initializer="zeros", name="w_uu")
+        # acoplamento assimétrico (não transposto) — desligado na baseline (frozen)
+        self.w_hu = self.add_weight(shape=(self.d_logic, self.d_facts), initializer="zeros", trainable=False, name="w_hu")
+        self.w_uh = self.add_weight(shape=(self.d_facts, self.d_logic), initializer="zeros", trainable=False, name="w_uh")
+        self.w_uu = self.add_weight(shape=(self.d_facts, self.d_facts), initializer="zeros", trainable=False, name="w_uu")
         # fix scratch-graph: guarda numpy denso, fatia p/ L real no call
         self._A_np = self._causal_sw_np()
         self.gate = self.add_weight(shape=(dim,), initializer="ones", name="gate")

@@ -2,7 +2,7 @@
 import json, csv, pathlib
 import numpy as np, tensorflow as tf
 from model_v21 import ConsciousV21
-ver = "v21.2"
+ver = "v21.1-coupled"
 cfg = json.loads(pathlib.Path(f"bundles/{ver}/config.json").read_text())
 seeds = cfg["seeds"]
 out = pathlib.Path(f"bundles/{ver}/metrics_3seeds.csv")

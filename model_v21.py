@@ -60,8 +60,8 @@ class TangoV21(tf.keras.layers.Layer):
             h_logic = h_logic + tf.matmul(xf, self.w_uh)
             h_facts = xf + tf.matmul(xl, self.w_hu) * 0.1 + tf.matmul(xf, self.w_uu) * 0.1
         if bool(getattr(self, "langevin", False)) and training:
-            # v21.2: loop Langevin 3 passos (facts ancorado), beta frio 0.15
-            h = x_mixed
+            # v21.2: loop Langevin parte do estado ACOPLADO (não descarta w_hu/w_uh)
+            h = tf.concat([h_logic, h_facts], -1)
             u_facts = xf
             beta_t = tf.cast(self.beta, h.dtype)
             eta_t = tf.cast(self.eta, h.dtype)

@@ -1,0 +1,17 @@
+{
+  "n_layers": 12,
+  "d_model": 768,
+  "seq_len": 128,
+  "vocab_size": 32000,
+  "facts_frac": 0.05,
+  "facts_anchored": true,
+  "beta_start": 0.15,
+  "clip_norm": 1.5,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "hardware_ref": "colab-t4-free",
+  "version": "v21.0-baseline"
+}

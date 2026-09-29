@@ -1,0 +1,17 @@
+# pesos e corpus — nunca no GitHub
+*.h5
+*.weights.h5
+*.bin
+*.safetensors
+ckpt-*/
+data/
+*_corpus*.txt
+Celestia_Elite_Corpus*.txt
+# venv e caches
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+bundles/*/metrics.csv
+bundles/*/*.log
+# sistema
+.DS_Store

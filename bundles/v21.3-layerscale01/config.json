@@ -13,9 +13,5 @@
     2
   ],
   "hardware_ref": "colab-t4-free",
-  "version": "v21.3-layerscale01",
-  "layer_scale_init": 0.1,
-  "coupling": true,
-  "langevin": false,
-  "steps": 500
+  "version": "v21.3"
 }

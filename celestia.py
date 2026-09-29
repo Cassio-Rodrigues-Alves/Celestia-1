@@ -45,8 +45,10 @@ print("FIM {ver} {h} — volta no PC e roda: python celestia.py check {ver}")
 def cmd_check(ver):
     d = BUNDLE / ver
     print(f"== check {ver} ==")
-    for f in ["config.json", "bundle.hash", "metrics.csv", "teste_contexto.log", "RESULTADO.md"]:
+    for f in ["config.json", "bundle.hash", "metrics.csv", "metrics_3seeds.csv", "teste_contexto.log", "RESULTADO.md"]:
         print(("OK  " if (d/f).exists() else "FALTA"), f)
+    if ver == "v21.1-coupled":
+        print("PROMOVIDA 2026-09-29: 3 seeds 0.081/0.084/0.083 clip 0.38 ctx +584% — nova baseline.")
     print("Regra: sem metrics.csv + teste_contexto.log = inválido (não entra em ranking).")
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ class TangoV21(tf.keras.layers.Layer):
         x_mixed = self._sparse_mix(x_norm)
         if training:
             w32 = tf.cast(self.w_stone, tf.float32)
-            self.add_loss(1e-4 * tf.reduce_mean(tf.square(w32.T @ w32 - tf.eye(self.d_logic, dtype=tf.float32))))
+            self.add_loss(1e-4 * tf.reduce_mean(tf.square(tf.matmul(w32, w32, transpose_a=True) - tf.eye(self.d_logic, dtype=tf.float32))))
         # facts ancorado: u_tan == u_facts (idêntico, sem retreino)
         h_logic = tf.matmul(x_mixed[..., :self.d_logic], self.w_stone)
         h_out = tf.concat([h_logic, x_mixed[..., self.d_logic:]], -1)

@@ -4,10 +4,11 @@ from legacy_model_reference import PreLNFFN  # noqa
 VOCAB_SIZE, D_MODEL, LAYERS, SEQ_LEN = 32000, 768, 12, 128
 
 class TangoV21(tf.keras.layers.Layer):
-    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, **kw):
+    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, langevin=False, **kw):
         super().__init__(**kw)
         self.d_model, self.eta = d_model, eta
         self.coupling, self.coupling_scale = coupling, coupling_scale
+        self.langevin = langevin
         self.beta = tf.Variable(beta_start, trainable=False, dtype=tf.float32)
         self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         # ponytail: layer_scale=0 init, 1 escalar por camada
@@ -58,6 +59,28 @@ class TangoV21(tf.keras.layers.Layer):
         if bool(getattr(self, "coupling", False)):
             h_logic = h_logic + tf.matmul(xf, self.w_uh)
             h_facts = xf + tf.matmul(xl, self.w_hu) * 0.1 + tf.matmul(xf, self.w_uu) * 0.1
+        if bool(getattr(self, "langevin", False)) and training:
+            # v21.2: loop Langevin 3 passos (facts ancorado), beta frio 0.15
+            h = x_mixed
+            u_facts = xf
+            beta_t = tf.cast(self.beta, h.dtype)
+            eta_t = tf.cast(self.eta, h.dtype)
+            s_traj = []
+            for t in range(3):
+                xl_t = h[..., :self.d_logic]
+                f_h = tf.matmul(xl_t, self.w_stone)
+                f_full = tf.concat([f_h, tf.zeros_like(h[..., self.d_logic:])], -1)
+                g_logic = h - f_full
+                g_facts = h[..., self.d_logic:] - u_facts  # fact ancorado: sem tangente
+                noise = tf.random.normal(tf.shape(h), dtype=h.dtype)
+                ns = tf.cast(tf.sqrt(2.0 * self.eta / beta_t), h.dtype)
+                h_logic_next = xl_t - eta_t * g_logic[..., :self.d_logic] + noise[..., :self.d_logic] * ns
+                h_facts_next = (1.0 - eta_t) * h[..., self.d_logic:] + eta_t * u_facts
+                h = tf.concat([h_logic_next, h_facts_next], -1)
+                beta_t = beta_t * 1.05
+                s_traj.append(float(tf.reduce_mean(tf.abs(h)).numpy()) if not tf.executing_eagerly_outside_functions() else None)
+            self._s_last = [s for s in s_traj if s is not None]
+            h_logic, h_facts = h[..., :self.d_logic], h[..., self.d_logic:]
         h_out = tf.concat([h_logic, h_facts], -1)
         return self.layer_scale * h_out * tf.nn.sigmoid(self.gate)
 
@@ -68,11 +91,11 @@ class TangoV21(tf.keras.layers.Layer):
         return {"nhu": float(np.linalg.norm(self.w_hu.numpy())), "nuh": float(np.linalg.norm(self.w_uh.numpy())), "eig_stone": eig}
 
 class ConsciousV21(tf.keras.Model):
-    def __init__(self, coupling=False):
+    def __init__(self, coupling=False, langevin=False):
         super().__init__()
         self.embed = tf.keras.layers.Embedding(VOCAB_SIZE, D_MODEL)
         self.pos = tf.keras.layers.Embedding(SEQ_LEN, D_MODEL)
-        self.blocks = [(TangoV21(D_MODEL, coupling=coupling, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
+        self.blocks = [(TangoV21(D_MODEL, coupling=coupling, langevin=langevin, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
         self.ln = tf.keras.layers.LayerNormalization(dtype="float32")
         self.head = tf.keras.layers.Dense(VOCAB_SIZE, dtype="float32")
     def call(self, inp, training=False, introspection_active=False):

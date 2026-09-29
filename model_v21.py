@@ -4,15 +4,16 @@ from legacy_model_reference import PreLNFFN  # noqa
 VOCAB_SIZE, D_MODEL, LAYERS, SEQ_LEN = 32000, 768, 12, 128
 
 class TangoV21(tf.keras.layers.Layer):
-    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, langevin=False, **kw):
+    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, langevin=False, layer_scale_init=0.0, **kw):
         super().__init__(**kw)
         self.d_model, self.eta = d_model, eta
         self.coupling, self.coupling_scale = coupling, coupling_scale
         self.langevin = langevin
+        self.layer_scale_init = layer_scale_init
         self.beta = tf.Variable(beta_start, trainable=False, dtype=tf.float32)
         self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        # ponytail: layer_scale=0 init, 1 escalar por camada
-        self.layer_scale = self.add_weight(shape=(), initializer="zeros", trainable=True, name="layer_scale")
+        # ponytail: layer_scale escalar por camada, init configurável (0 na baseline)
+        self.layer_scale = self.add_weight(shape=(), initializer=tf.keras.initializers.Constant(layer_scale_init), trainable=True, name="layer_scale")
 
     def _causal_sw_np(self, n=SEQ_LEN, k=6, p=0.1):
         adj = np.zeros((n, n), np.float32)
@@ -87,11 +88,11 @@ class TangoV21(tf.keras.layers.Layer):
         return {"nhu": float(np.linalg.norm(self.w_hu.numpy())), "nuh": float(np.linalg.norm(self.w_uh.numpy())), "eig_stone": eig}
 
 class ConsciousV21(tf.keras.Model):
-    def __init__(self, coupling=False, langevin=False):
+    def __init__(self, coupling=False, langevin=False, layer_scale_init=0.0):
         super().__init__()
         self.embed = tf.keras.layers.Embedding(VOCAB_SIZE, D_MODEL)
         self.pos = tf.keras.layers.Embedding(SEQ_LEN, D_MODEL)
-        self.blocks = [(TangoV21(D_MODEL, coupling=coupling, langevin=langevin, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
+        self.blocks = [(TangoV21(D_MODEL, coupling=coupling, langevin=langevin, layer_scale_init=layer_scale_init, name=f"attn_{i}"), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
         self.ln = tf.keras.layers.LayerNormalization(dtype="float32")
         self.head = tf.keras.layers.Dense(VOCAB_SIZE, dtype="float32")
     def call(self, inp, training=False, introspection_active=False):

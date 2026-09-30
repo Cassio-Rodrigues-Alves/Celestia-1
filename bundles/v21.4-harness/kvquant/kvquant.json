@@ -1,0 +1,47 @@
+{
+  "resumo": {
+    "16": {
+      "acc": 1.0,
+      "acc_std": 0.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "kl": 0.0,
+      "recuperou_contexto": 1.0
+    },
+    "8": {
+      "acc": 0.984375,
+      "acc_std": 0.023175620272173948,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "kl": 9.072380132808416e-09,
+      "recuperou_contexto": 1.0
+    },
+    "4": {
+      "acc": 0.8015625,
+      "acc_std": 0.06794629657862157,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "kl": 2.7691411520186975e-06,
+      "recuperou_contexto": 1.0
+    }
+  },
+  "veredito": {
+    "8": {
+      "delta_acc_vs_fp16": -0.01562,
+      "delta_l_faith_vs_fp16": 0.0,
+      "preserva_fidelidade": true
+    },
+    "4": {
+      "delta_acc_vs_fp16": -0.19844,
+      "delta_l_faith_vs_fp16": 0.0,
+      "preserva_fidelidade": true
+    }
+  },
+  "config": {
+    "D": 64,
+    "N_KEYS": 64,
+    "N_Q": 32,
+    "TRIALS": 20,
+    "TOL": 0.25
+  }
+}

@@ -121,5 +121,12 @@ def eval_loss(model, val_x, val_y, V, loss_fn):
 
 
 def saturated(loss_val, tol=1e-2):
-    """Heurística de saturação: loss de val abaixo de `tol` foi memorizada, não aprendida."""
+    """Heurística de saturação, **válida apenas para a tarefa-controle `mem`**.
+
+    Em `mem` os dados são o MESMO lote fixo em todos os passos: loss_val baixa ali é
+    memorização, não aprendizado. Já em tarefas com dados novos a cada passo
+    (`lag`, `copy`, `induction`, `assoc`) a validação é um conjunto CONGELADO e
+    out-of-batch: loss_val baixa é **tarefa resolvida**, não saturação. Usar este
+    atalho fora de `mem` produz conclusão invertida.
+    """
     return float(loss_val) < tol

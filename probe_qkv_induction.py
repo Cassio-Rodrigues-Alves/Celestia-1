@@ -36,7 +36,7 @@ from runner_v21 import set_seeds, train_run  # noqa: E402
 from tasks_v21 import make_env  # noqa: E402
 
 tf.config.threading.set_intra_op_parallelism_threads(2)
-tf.config.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
 tf.config.set_visible_devices([], "GPU")
 
 V, L, B, STEPS, LS = 16, 32, 8, 400, 0.1

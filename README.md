@@ -12,6 +12,7 @@ Regras de comparação em `regras_comparacao.md`. Ponte PC<->Colab via `celestia
 - v21.3-layerscale01: REJEITADA promoção (Δ=0 vs v21.1 @500: tarefa sintética saturou no chão 0.003; indistinguível neste orçamento). Mantida como branch-pesquisa: estável, sem NaN. Diagnóstico fino (5 casas + geometria) via diag_v21.py a partir de agora.
 - v21.2-langevin: REJEITADA p/ promoção (Δ 200 steps = 0 vs v21.1, layer_scale=0 mascara) — branch-pesquisa estável arquivado — 2026-09-29 T4
 - v21.3: ABERTA (1 variável: layer_scale init 0→0.1, deixa atenção aparecer)
+- v21.4-harness: INSTRUMENTO NOVO (não é candidato a promoção). O harness antigo media MEMORIZAÇÃO (lote fixo de 64 tokens): no controle `mem` deu train 0.020 / val 7.017 (pior que o uniforme 2.773). O harness novo usa validação out-of-batch: `lag` deu train 1.533 / val 1.507 (45% abaixo do uniforme) → generalização real. Instrumentação: r_t^(l), mu_e, sigma_e^2, ||dtheta||/||theta||. Sonda de capacidade: a v21 (mistura por grafo FIXO, sem Q/K/V) não aprende `induction` (2.780 ≈ uniforme 2.773); com Q/K/V em probe (model_qkv_probe.py) cai para 1.307 → a lacuna é roteamento por conteúdo. Detalhes: NOITE_2026-09-30.md, bundles/v21.4-harness/.
 - `run_v21_0_baseline.py` — entrypoint executado no Colab T4 (1 célula)
 - `push_results.py` — sobe só leves (csv/log/hash) de volta
 - `bundles/v21.0-baseline/config.json` — config congelada

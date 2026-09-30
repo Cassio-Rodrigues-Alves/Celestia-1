@@ -1,0 +1,80 @@
+{
+  "consistencia": {
+    "mem::morta": {
+      "loss_val": 7.017334938049316,
+      "loss_train": 0.020265033468604088,
+      "gap_calc": 6.997069904580712,
+      "gap_registrado": 6.997069904580712,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    },
+    "mem::viva": {
+      "loss_val": 6.957605838775635,
+      "loss_train": 0.0200931616127491,
+      "gap_calc": 6.937512677162886,
+      "gap_registrado": 6.937512677162886,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    },
+    "lag::morta": {
+      "loss_val": 1.5066546201705933,
+      "loss_train": 1.533461570739746,
+      "gap_calc": -0.026806950569152832,
+      "gap_registrado": -0.026806950569152832,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    },
+    "lag::viva": {
+      "loss_val": 1.5126957893371582,
+      "loss_train": 1.5361329317092896,
+      "gap_calc": -0.023437142372131348,
+      "gap_registrado": -0.023437142372131348,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    },
+    "induction::morta": {
+      "loss_val": 2.7859227657318115,
+      "loss_train": 2.7733423709869385,
+      "gap_calc": 0.012580394744873047,
+      "gap_registrado": 0.012580394744873047,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    },
+    "induction::viva": {
+      "loss_val": 2.7870664596557617,
+      "loss_train": 2.7700705528259277,
+      "gap_calc": 0.016995906829833984,
+      "gap_registrado": 0.016995906829833984,
+      "gap_ok": true,
+      "n_camadas_resid": 2,
+      "ctx": true
+    }
+  },
+  "reprodutibilidade": {
+    "config": "lag LS=0.1 seed=0 V=16 L=32 B=8 400 passos",
+    "loss_val_registrado": 1.5126957893371582,
+    "loss_val_reproduzido": 1.4974517822265625,
+    "diff_abs": 0.015244007110595703,
+    "reproduz": false
+  },
+  "artefatos": {
+    "bundles/v21.4-harness/config.json": true,
+    "bundles/v21.4-harness/diff_vs_anterior.md": true,
+    "bundles/v21.4-harness/veredito.md": true,
+    "bundles/v21.4-harness/local_debug/local_debug.json": true,
+    "bundles/v21.4-harness/local_debug/stab_mem_morta.csv": true,
+    "bundles/v21.4-harness/local_debug/stab_lag_viva.csv": true,
+    "bundles/v21.4-harness/local_debug/stab_induction_viva.csv": true,
+    "bundles/v21.4-harness/probe_qkv/probe_qkv.json": true,
+    "bundles/v21.4-harness/kvquant/kvquant.json": true,
+    "bundles/v21.4-harness/kvquant/kvquant.csv": true,
+    "NOITE_2026-09-30.md": true,
+    "PROXIMOS_PASSOS.md": true
+  },
+  "veredito": "DIVERGENCIA"
+}

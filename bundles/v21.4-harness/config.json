@@ -1,0 +1,26 @@
+{
+  "version": "v21.4-harness",
+  "n_layers": 12,
+  "d_model": 768,
+  "seq_len": 128,
+  "vocab_size": 32000,
+  "facts_frac": 0.05,
+  "facts_anchored": true,
+  "beta_start": 0.15,
+  "clip_norm": 1.5,
+  "seeds": [0, 1, 2],
+  "hardware_ref": "colab-t4-free",
+  "harness": {
+    "tasks_oficiais": ["induction", "mem"],
+    "tasks_sonda_capacidade": ["induction", "assoc", "copy"],
+    "variants_layer_scale_init": [0.0, 0.1],
+    "steps": 300,
+    "V": 512,
+    "L": 32,
+    "B": 2,
+    "lr": 1e-4,
+    "n_val_batches": 8
+  },
+  "nota": "v21.4 NAO e candidato a promocao: muda o INSTRUMENTO de medicao (harness) + adiciona instrumentacao de estabilidade. Nenhuma variavel da arquitetura muda. Exige nova baseline no harness novo; numeros do harness antigo (chao 0.003) nao sao comparaveis com estes.",
+  "autoria": "DeepSeek (noite 2026-09-30)"
+}

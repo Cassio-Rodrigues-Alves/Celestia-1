@@ -19,3 +19,24 @@ instrumento*. Não há arquitetura nova aqui para promover.
 - Não inicia treino real (Fase 2 não fechada).
 
 *Autoria: DeepSeek (noite 2026-09-30).*
+
+## Validação T4 (2026-09-30, conta GPU do Cássio, `run_v21_4_harness.py` padrão)
+
+12 runs, 300 steps, V=512 (uniforme ln512=6.238), 3 seeds, `set_random_seed` ativo.
+
+- **induction:** ls0.0 6.35428/6.31636/6.31852 (média 6.32972, std 0.017) |
+  ls0.1 6.30835/6.35494/6.30502 (média 6.32277, std 0.023) → **Δ=−0.00695, ruído**.
+  Ambas ≈ uniforme ou pior. Nenhum regime aprende induction.
+- **mem (controle):** train → 0.0058, val → 8.37–8.41 (≫ uniforme).
+  Colapso de memorização reproduzido no T4 — o instrumento antigo media isto.
+- **r_attn separa regimes (0.01 vs 0.75) mas a loss não se move.**
+  Atenção viva ≠ atenção útil: o roteamento é posicional, não por conteúdo.
+  `r_attn` sozinho é métrica-vaidade para capacidade — ver Achado #2.
+- **grad_conn (diag):** stone 1.47e-1 vs w_uh 3.3e-2, w_hu 4.3e-3, w_uu 9.9e-4.
+  Acoplamento conectado mas 1–2 ordens abaixo da pedra. Consistente com a P2.
+- Zero NaN/Inf em 12 runs. `clip_rate` induction = 1.00 (sinal de tarefa não-aprendida,
+  não de instabilidade — gn ~5 estável do step 0 ao 299).
+
+**Conclusão:** harness validado no T4; baseline segue **v21.1-coupled**; próxima
+candidata de Fase 1 com evidência: sonda Q/K/V (`model_qkv_probe.py`) testada
+neste mesmo harness (tarefa induction) — se aprender, vira v21.5-candidata.

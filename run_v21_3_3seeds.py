@@ -1,8 +1,8 @@
-"""v21.1 3-seeds — exigência das regras p/ promover."""
+"""v21.3 500 steps 3-seeds — layer_scale_init=0.1."""
 import json, csv, pathlib
 import numpy as np, tensorflow as tf
 from model_v21 import ConsciousV21
-ver = "v21.2"
+ver = "v21.3-layerscale01"
 cfg = json.loads(pathlib.Path(f"bundles/{ver}/config.json").read_text())
 seeds = cfg["seeds"]
 out = pathlib.Path(f"bundles/{ver}/metrics_3seeds.csv")
@@ -25,7 +25,11 @@ for sd in seeds:
         opt.apply_gradients(zip(grads, m.trainable_variables))
     tel = m.blocks[0][0].telemetry()
     rows.append([sd, float(loss), n_clip/STEPS, gn, tel["nhu"], tel["nuh"]])
-    print(f"seed {sd}: loss={float(loss):.3f} clip={n_clip/STEPS:.2f} gn={gn:.3f} nhu={tel['nhu']:.3f}", flush=True)
+    print(f"seed {sd}: loss={float(loss):.5f} clip={n_clip/STEPS:.2f} gn={gn:.5f} nhu={tel['nhu']:.5f}", flush=True)
 with open(out, "w", newline="") as f:
     w = csv.writer(f); w.writerow(["seed", "loss", "clip_rate", "gn", "nhu", "nuh"]); w.writerows(rows)
 print(f"ok -> {out}")
+
+from diag_v21 import diag_model
+diag_model(m, ver + "@500", pathlib.Path(f"bundles/{ver}"),
+           extra={"steps": 500, "layer_scale_init": 0.1, "seed_diag": seeds[-1]})

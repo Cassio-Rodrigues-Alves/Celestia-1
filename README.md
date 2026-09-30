@@ -8,6 +8,8 @@ Regras de comparação em `regras_comparacao.md`. Ponte PC<->Colab via `celestia
 - v21.1-coupled: PROMOVIDA a nova baseline (3 seeds loss 0.081-0.084, clip 0.38, ctx +584% vs v21.0, sem regressão) — 2026-09-29 T4
 - v21.1-coupled @200 steps T4: 0.010/0.010/0.011, clip 0.10 — REFERÊNCIA LONGA
 - v21.2-langevin: REJEITADA promoção (Δloss=0 vs v21.1 @200 steps; layer_scale=0 mascara atenção). Mantida como branch-pesquisa: estável, 3 seeds 0.010, clip 0.10, sem NaN. Retomar quando layer_scale sair do zero (500+ steps ou init ≠ 0).
+- v21.1 @500 steps T4: 0.003/0.003/0.003, clip 0.04 — REFERÊNCIA LONGA
+- v21.3-layerscale01: REJEITADA promoção (Δ=0 vs v21.1 @500: tarefa sintética saturou no chão 0.003; indistinguível neste orçamento). Mantida como branch-pesquisa: estável, sem NaN. Diagnóstico fino (5 casas + geometria) via diag_v21.py a partir de agora.
 - v21.2-langevin: REJEITADA p/ promoção (Δ 200 steps = 0 vs v21.1, layer_scale=0 mascara) — branch-pesquisa estável arquivado — 2026-09-29 T4
 - v21.3: ABERTA (1 variável: layer_scale init 0→0.1, deixa atenção aparecer)
 - `run_v21_0_baseline.py` — entrypoint executado no Colab T4 (1 célula)

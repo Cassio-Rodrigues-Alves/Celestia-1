@@ -22,6 +22,15 @@ Sem número comparável, sem claim. Opinião não promove versão.
 
 Faltou uma métrica = teste inválido, refazer.
 
+### 2.1 Precisão e pacote de diagnóstico (obrigatório em toda comparação)
+- **Ranking/promoção:** 3 casas decimais (comparação entre versões).
+- **Diagnóstico:** 5 casas decimais + pacote mínimo (`diag_v21.py` → `diag.json` + `diag_geometry.csv` no bundle):
+  - geometria por camada: `fro`, `sigma_max/min`, erro ortogonal (`||W^T W - I||_F`), raio espectral — `w_stone`, `w_hu`, `w_uh`, `w_uu`
+  - `layer_scale`, `beta`, `gate` (mean/min/max) por camada — trajetória do `layer_scale` vs init é sinal-chave
+  - conectividade de gradiente (estilo CEL-LAB H3/H4): `∇LM` chega em `w_uu`/`w_hu`/`w_uh`? (`grad_conn_L0`)
+  - `global_nan`, `global_inf` nos pesos ao final
+- Tarefa saturada (Δ=0 no chão do toy) NÃO discrimina arquitetura — veredito fica "indistinguível neste orçamento", e a decisão vira custo/benefício, não vitória.
+
 ## 3. Testes funcionais mínimos (não só loss)
 3.1. Coerência PT em 2.6% do treino (teste de fumaça histórico) — regrediu, reprova.
 3.2. Uso de contexto: `layer_scale=1.0 vs 0.0` tem que mudar output. Se igual, modelo ignora contexto = reprova.

@@ -18,10 +18,17 @@
       Resultado: `induction` 2.78047 → **1.30733**; `lag` 1.51304 → **0.00306**.
       Hipótese confirmada: a lacuna é roteamento por conteúdo.
       Evidência: `bundles/v21.4-harness/probe_qkv/probe_qkv.json`.
-- [ ] **P5 — Protótipo KV-cache (prioridade 2 do inst.ger.1).** `kvquant_v21.py` em numpy
-      puro: FP16 vs INT8 vs INT4 com `L_faith` (regra 3.4) — só accuracy não basta.
-- [ ] **P6 — Verificação final.** Re-rodar tudo do zero (mesmas seeds), conferir CSVs e
-      `diag.json`, atualizar `NOITE_2026-09-30.md`, commit local, deixar pronto p/ push manual.
+- [x] **P5 — Protótipo KV-cache (prioridade 2 do inst.ger.1).** FEITO (30/09):
+      `kvquant_v21.py` (numpy puro). FP16 acc 1.000 / INT8 acc 0.984 / INT4 acc **0.802**
+      (−19,8 pp); KL cresce com a compressão. Ressalva: a `L_faith` implementada **não
+      discriminou** (ficou 1.0 até em INT4) → a definição da métrica precisa ser corrigida
+      antes da regra 3.4 valer. Evidência: `bundles/v21.4-harness/kvquant/`.
+- [x] **P6 — Verificação final.** FEITO (30/09): `verify_v21_4.py` (artefatos OK,
+      consistência OK, reprodutibilidade **DIVERGIU**) + `noise_floor_v21_4.py`
+      (spread 0,0269) → caçada a causa raiz: **`tf.random.set_seed` não controla a
+      inicialização do Keras 3** (max|diff| 0,695 entre duas inits com a mesma seed).
+      Corrigido com `tf.keras.utils.set_random_seed` → **spread 0,00000000 (bit-exato)**.
+      Evidência: `bundles/v21.4-harness/{verify,noise}/`. Detalhes: NOITE_2026-09-30.md §11.
 
 ## Restrições permanentes (não violar de madrugada)
 - Não alterar `model_v21.py` nem `regras_comparacao.md` (documentos comparativos).

@@ -1,0 +1,16 @@
+{
+  "threads": 1,
+  "reps": 2,
+  "steps": 150,
+  "loss_val_lista": [
+    1.847812294960022,
+    1.82663094997406
+  ],
+  "loss_train_lista": [
+    1.8664363622665405,
+    1.8538904190063477
+  ],
+  "spread_loss_val": 0.021181344985961914,
+  "bit_exato": false,
+  "nota": "delta menor ou igual a spread_loss_val nao e evidencia neste harness"
+}

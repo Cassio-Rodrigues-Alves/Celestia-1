@@ -26,7 +26,13 @@ from tasks_v21 import eval_loss
 
 
 def set_seeds(seed):
-    tf.random.set_seed(seed)
+    """Semente COMPLETA. `tf.random.set_seed` sozinho NÃO controla os inicializadores do
+    Keras 3: duas inicializações com a mesma seed davam pesos diferentes
+    (max|diff| ~0.65 em `stone`, medido em 30/09). `tf.keras.utils.set_random_seed`
+    cobre Python + NumPy + TensorFlow/Keras e torna a init determinística (diff 0.000).
+    Sem isto, a regra 1.2 ("mesma seed base") não controla nada do que importa.
+    """
+    tf.keras.utils.set_random_seed(seed)
     np.random.seed(seed)
 
 

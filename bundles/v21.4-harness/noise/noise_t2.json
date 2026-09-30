@@ -3,16 +3,16 @@
   "reps": 3,
   "steps": 150,
   "loss_val_lista": [
-    1.8337440490722656,
-    1.8227260112762451,
-    1.8068327903747559
+    1.8140558004379272,
+    1.8140558004379272,
+    1.8140558004379272
   ],
   "loss_train_lista": [
-    1.816428542137146,
-    1.8460139036178589,
-    1.8348714113235474
+    1.8643639087677002,
+    1.8643639087677002,
+    1.8643639087677002
   ],
-  "spread_loss_val": 0.026911258697509766,
-  "bit_exato": false,
+  "spread_loss_val": 0.0,
+  "bit_exato": true,
   "nota": "delta menor ou igual a spread_loss_val nao e evidencia neste harness"
 }

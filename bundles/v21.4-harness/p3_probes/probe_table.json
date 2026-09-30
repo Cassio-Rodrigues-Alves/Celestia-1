@@ -1,0 +1,29 @@
+{
+  "uniforme": 2.772588722239781,
+  "tabela": {
+    "copy::morta": {
+      "loss_val": 2.77802,
+      "fonte": "P3"
+    },
+    "copy::viva": {
+      "loss_val": 2.77804,
+      "fonte": "P3"
+    },
+    "assoc::morta": {
+      "loss_val": 2.77446,
+      "fonte": "P3"
+    },
+    "assoc::viva": {
+      "loss_val": 2.77494,
+      "fonte": "P3"
+    },
+    "induction::morta": {
+      "loss_val": 2.78592,
+      "fonte": "P1"
+    },
+    "induction::viva": {
+      "loss_val": 2.78707,
+      "fonte": "P1"
+    }
+  }
+}

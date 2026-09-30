@@ -9,10 +9,17 @@
       `mem`: train 0.020 / val 7.017 (memorização, pior que uniforme 2.773).
       `lag`: train 1.533 / val 1.507 (45% abaixo do uniforme → generaliza).
       `induction`: 2.786 ≈ uniforme (não aprendível por esta arquitetura).
-- [ ] **P2 — Acoplamento isolado no harness novo.** `coupling=False` vs `True` (LS 0.1 fixo)
-      na tarefa `lag` → o acoplamento `w_hu/w_uh/w_uu` muda o resultado além do `layer_scale`?
-- [ ] **P3 — Sonda de capacidade completa.** Rodar `copy` e `assoc` (probes) nas mesmas
-      condições e registrar a tabela final de sondas (qual capacidade existe hoje).
+- [x] **P2 — Acoplamento isolado no harness novo.** FEITO (30/09, mesma sessão da
+      surpresa): `local_p2_coupling.py`, tarefa `lag`, LS 0.1 fixo, 400 passos.
+      `sem`: val 1.50972 / `com`: val 1.50177 → Δ=−0.00796, **dentro do piso de
+      ruído (0.027)**. O acoplamento não se distingue do ruído na tarefa `lag`;
+      o `lag` é resolvido pelo roteamento posicional (grafo + layer_scale).
+      Evidência: `bundles/v21.4-harness/p2_coupling/p2_coupling.json`.
+- [x] **P3 — Sonda de capacidade completa.** FEITO (30/09): `local_p3_probes.py`,
+      `copy`+`assoc` × morta/viva + `induction` da P1. Tabela final: todas as 6
+      células ≈ uniforme (2.77259) — copy 2.77802/2.77804, assoc 2.77446/2.77494,
+      induction 2.78592/2.78707. **Nenhuma capacidade por conteúdo existe hoje,
+      em nenhum regime.** Evidência: `bundles/v21.4-harness/p3_probes/probe_table.json`.
 - [x] **P4 — Proposta Q/K/V (arquivo NOVO, `model_qkv_probe.py`).** FEITO (30/09):
       subclasse que troca só a mistura (grafo fixo → Q/K/V causal + softmax).
       Resultado: `induction` 2.78047 → **1.30733**; `lag` 1.51304 → **0.00306**.

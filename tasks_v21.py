@@ -34,6 +34,11 @@ import numpy as np
 import tensorflow as tf
 
 TASKS = ("mem", "copy", "induction", "assoc", "lag")
+# NOTA DE ALINHAMENTO (armadilha documentada 30/09, análise Claude CEL-2.001):
+# `train_run` usa loss(yb[:,1:], logits[:,:-1]) e make_task devolve (seq[:-1], seq[1:]).
+# Efeito líquido: alvo(p) = seq[p+2]. Toda tarefa nova TEM que ser desenhada contra
+# esse deslocamento — `copy` ingênuo vira "adivinhe 2 à frente" (impossível) e `assoc`
+# sem respostas após as consultas nunca testa recuperação (BUG pré-fix, ver VOID).
 # Tarefas que a Mycelium-LM v21 CONSEGUE aprender (mistura posicional fixa basta):
 HARNESS_TASKS = ("mem", "lag")
 # Sondas de CAPACIDADE: exigem atenção por CONTEÚDO (Q/K/V). A v21 não tem Q/K/V
@@ -54,8 +59,14 @@ def make_task(name, V, L, B, seed):
         return tf.constant(x, tf.int32), tf.constant(x, tf.int32)
 
     if name == "copy":
-        x = rng.integers(0, V, size=(B, L))
-        return tf.constant(x[:, :-1], tf.int32), tf.constant(x[:, 1:], tf.int32)
+        # CORRIGIDA 30/09: identidade sob o deslocamento do harness.
+        # yb = [sentinela, x[0..]] -> alvo(p) = yb[p+1] = x[p]. Sanity probe:
+        # qualquer modelo funcional copia; se falhar, o modelo está quebrado.
+        # (Versão antiga pedia seq[p+2] de seq i.i.d. = impossível até p/ QKV.)
+        x = rng.integers(0, V, size=(B, L - 1))
+        yb = np.zeros((B, L - 1), dtype=np.int64)
+        yb[:, 1:] = x[:, :-1]
+        return tf.constant(x, tf.int32), tf.constant(yb, tf.int32)
 
     if name == "induction":
         K = max(2, L // 2)
@@ -76,13 +87,21 @@ def make_task(name, V, L, B, seed):
         return tf.constant(s[:, :-1], tf.int32), tf.constant(y[:, 1:], tf.int32)
 
     if name == "assoc":
-        # metade pares (k,v), metade consulta k -> prever v
+        # CORRIGIDA 30/09: seq = [k1 v1 ... kK vK | q1..qK | a1..aK], a_j = v_j.
+        # A resposta vem DEPOIS da consulta, então alvo(p)=seq[p+2] para as respostas
+        # exige ter visto q_j — só roteamento por CONTEÚDO resolve. Piso p/ modelo
+        # com conteúdo: 14/30*lnV (chaves/valores de primeira ocorrência).
+        # (Versão antiga terminava nas consultas: valores imprevisíveis sempre e
+        # chaves copiáveis por offset fixo variável — media cópia, não associação.)
         K = max(2, L // 4)
         keys = rng.integers(0, V, size=(B, K))
         vals = rng.integers(0, V, size=(B, K))
         kv = np.stack([keys, vals], axis=-1).reshape(B, 2 * K)   # k1 v1 k2 v2 ...
-        qk = keys                                             # pergunta as chaves em ordem
-        seq = np.concatenate([kv, qk], axis=1)                # ... k1 k2 ... -> prever v1 v2
+        seq = np.concatenate([kv, keys, vals], axis=1)           # ... q1..qK a1..aK
+        if seq.shape[1] > L:
+            seq = seq[:, :L]
+        elif seq.shape[1] < L:
+            seq = np.concatenate([seq, np.zeros((B, L - seq.shape[1]), dtype=seq.dtype)], axis=1)
         return tf.constant(seq[:, :-1], tf.int32), tf.constant(seq[:, 1:], tf.int32)
 
     raise ValueError(f"tarefa desconhecida: {name!r} (use uma de {TASKS})")

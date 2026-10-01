@@ -65,9 +65,18 @@ class ConsciousV21QKVProbe(ConsciousV21):
     def __init__(self, coupling=False, langevin=False, layer_scale_init=0.0):
         super().__init__(coupling=coupling, langevin=langevin, layer_scale_init=layer_scale_init)
         import model_v21 as M
+        n = len(self.blocks)
         self.blocks = [
             (TangoQKVProbe(M.D_MODEL, coupling=coupling, langevin=langevin,
                            layer_scale_init=layer_scale_init, name=f"qkv_{i}"),
              f)
             for i, (_, f) in enumerate(self.blocks)
         ]
+        for i in range(n):
+            old = getattr(self, f"attn_{i}", None)
+            if old is not None:
+                old.trainable = False  # peso-morto (só layer_scale existe): fora do otimizador
+            try:
+                delattr(self, f"attn_{i}")  # blocos substituídos: sem acesso fantasma
+            except AttributeError:
+                pass

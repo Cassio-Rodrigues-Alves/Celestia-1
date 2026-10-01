@@ -153,26 +153,9 @@ class TangoAssocProbe(TangoV21):
 class ConsciousV21AssocProbe(ConsciousV21):
     """`ConsciousV21` com os blocos TANGO trocados pela sonda de memória associativa."""
 
-    def __init__(self, coupling=False, langevin=False, layer_scale_init=0.0,
-                 mode="replace", d_mem=None):
-        super().__init__(coupling=coupling, langevin=langevin, layer_scale_init=layer_scale_init)
-        import model_v21 as M
-        n = len(self.blocks)
-        self.blocks = [
-            (TangoAssocProbe(M.D_MODEL, mode=mode, d_mem=d_mem, coupling=coupling,
-                             langevin=langevin, layer_scale_init=layer_scale_init,
-                             name=f"assoc_{i}"),
-             f)
-            for i, (_, f) in enumerate(self.blocks)
-        ]
-        for i in range(n):
-            old = getattr(self, f"attn_{i}", None)
-            if old is not None:
-                old.trainable = False  # peso-morto (só layer_scale existe): fora do otimizador
-            try:
-                delattr(self, f"attn_{i}")  # blocos substituídos: sem acesso fantasma
-            except AttributeError:
-                pass
+    def __init__(self, mode="replace", d_mem=None, **kw):
+        super().__init__(attn_cls=TangoAssocProbe, attn_prefix="assoc",
+                         mode=mode, d_mem=d_mem, **kw)
 
 
 def selftest(d_model=64, L=32, B=3, seed=0, tol=1e-4):

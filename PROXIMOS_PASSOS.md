@@ -9,12 +9,14 @@
       `mem`: train 0.020 / val 7.017 (memorização, pior que uniforme 2.773).
       `lag`: train 1.533 / val 1.507 (45% abaixo do uniforme → generaliza).
       `induction`: 2.786 ≈ uniforme (não aprendível por esta arquitetura).
-- [x] **P2 — Acoplamento isolado no harness novo.** FEITO (30/09, mesma sessão da
-      surpresa): `local_p2_coupling.py`, tarefa `lag`, LS 0.1 fixo, 400 passos.
-      `sem`: val 1.50972 / `com`: val 1.50177 → Δ=−0.00796, **dentro do piso de
-      ruído (0.027)**. O acoplamento não se distingue do ruído na tarefa `lag`;
-      o `lag` é resolvido pelo roteamento posicional (grafo + layer_scale).
-      Evidência: `bundles/v21.4-harness/p2_coupling/p2_coupling.json`.
+- [x] **P2 — Acoplamento isolado no harness novo.** DUAS medições (30/09 e 02/10):
+      (a) sessão pré-fix: `lag`, LS 0.1, 400 steps, 1 seed → sem 1.50972 / com
+      1.50177, Δ=−0.00796 (arquivado em `p2_coupling_pre_fix.md`);
+      (b) re-medição DeepSeek c/ seed determinística: 300 steps, 2 seeds,
+      Δ=−0.00324. O veredito automático ("acima do piso 0.0") foi CORRIGIDO
+      (`CORRECAO_P2.md`): piso 0.0 é de re-run, não de comparação entre braços
+      com inits diferentes; Δ≈0.003–0.008 com n≤2 = ruído. **Veredito conjunto:
+      INDISTINGUÍVEL.** Evidência: `bundles/v21.4-harness/p2_coupling/`.
 - [x] **P3 — Sonda de capacidade completa.** FEITO (30/09): `local_p3_probes.py`,
       `copy`+`assoc` × morta/viva + `induction` da P1. Tabela final: todas as 6
       células ≈ uniforme (2.77259) — copy 2.77802/2.77804, assoc 2.77446/2.77494,

@@ -64,14 +64,18 @@ for coupling in (False, True):
     porc[coupling] = {"mean": float(np.mean(vals)), "vals": vals}
 media_f = porc[False]["mean"]; media_t = porc[True]["mean"]
 delta = media_t - media_f
-# piso de ruído desta config: medido em noise/ (spread 0.0 com seed determinística)
-piso = 0.0
-veredito = "INDISTINGUIVEL neste orcamento" if abs(delta) <= piso else "DIFERENCA ACIMA DO PISO"
+# Referência correta para comparar duas CONFIGURAÇÕES é a dispersão ENTRE SEEDS
+# (o piso de 0.0 vale só para repetir a MESMA config com a mesma seed).
+def _spread(vals):
+    return float(max(vals) - min(vals))
+spread = max(_spread(porc[False]["vals"]), _spread(porc[True]["vals"]))
+veredito = ("INDISTINGUIVEL neste orcamento (delta dentro da dispersao entre seeds)"
+            if abs(delta) <= spread else "DIFERENCA ACIMA DA DISPERSAO ENTRE SEEDS")
 out = {"config": {"V": V, "L": L, "B": B, "steps": STEPS, "layer_scale_init": LS,
                   "lr": LR, "clip_norm": CLIP, "seeds": list(SEEDS), "task": "lag"},
        "resultados": res, "por_coupling": porc,
-       "delta_loss_val": delta, "piso_ruido": piso, "veredito": veredito,
+       "delta_loss_val": delta, "dispersao_entre_seeds": spread, "veredito": veredito,
        "nota": "escala reduzida = debug (regra 1.3); nao promove nada"}
 (OUT / "p2_coupling.json").write_text(json.dumps(out, indent=2, default=str))
-print(f"\ndelta(coupling=True - False) = {delta:+.6f} | piso={piso} -> {veredito}")
+print(f"\ndelta(coupling=True - False) = {delta:+.6f} | dispersao entre seeds={spread:.6f} -> {veredito}")
 print(f"ok -> {OUT}/p2_coupling.json")

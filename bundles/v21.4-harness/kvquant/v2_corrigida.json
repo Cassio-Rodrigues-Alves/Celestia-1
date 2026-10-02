@@ -1,0 +1,90 @@
+{
+  "config": {
+    "D": 64,
+    "N_KEYS": 64,
+    "N_Q": 32,
+    "TRIALS": 20,
+    "TOL": 0.25,
+    "TAU": 0.5,
+    "GANHO": 10.0
+  },
+  "resumo": {
+    "normal|16": {
+      "acc": 1.0,
+      "l_faith": 0.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.9874765396118164,
+      "kl": 0.0
+    },
+    "normal|8": {
+      "acc": 1.0,
+      "l_faith": 0.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.9870884150266648,
+      "kl": 1.4544718256459532e-06
+    },
+    "normal|4": {
+      "acc": 1.0,
+      "l_faith": 0.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.987066638469696,
+      "kl": 0.0004582658582194199
+    },
+    "answers_alheias|16": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.9876146614551544,
+      "kl": null
+    },
+    "answers_alheias|8": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.9876514136791229,
+      "kl": null
+    },
+    "answers_alheias|4": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.9871295869350434,
+      "kl": null
+    },
+    "massa_difusa|16": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.015625,
+      "kl": null
+    },
+    "massa_difusa|8": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.015625,
+      "kl": null
+    },
+    "massa_difusa|4": {
+      "acc": 1.0,
+      "l_faith": 1.0,
+      "l_faith_std": 0.0,
+      "pmax_medio": 0.015625,
+      "kl": null
+    }
+  },
+  "criterios": {
+    "A1_fp16_lfaith_baixa": true,
+    "A2a_answers_alheias_acusadas": true,
+    "A2b_massa_difusa_acusada": true,
+    "A3_int8_ok": true
+  },
+  "veredito": "METRICA VALIDADA",
+  "comparacao_com_v1": {
+    "v1_int4_l_faith": 1.0,
+    "v1_problema": "media sustentacao contra o indice do gabarito -> nao acusava nada",
+    "v2_int4_l_faith": 0.0,
+    "v2_int4_acc": 1.0
+  },
+  "nota": "escala debug; nao promove versao (regra 1.3)"
+}

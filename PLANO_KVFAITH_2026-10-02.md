@@ -26,8 +26,16 @@ corrompido) onde a métrica TEM de acusar fidelidade zero.
 
 ## Critérios de aceitação (pré-registrados, verificados ao final)
 - **A1** FP16 → `L_faith_v2` ≤ 0.05 (referência sem compressão não pode acusar infidelidade).
-- **A2** Cache **corrompido** (valores embaralhados) → `L_faith_v2` ≥ 0.90.
-  *Este é o critério que a v1 falhava: uma métrica que não acusa corrupção não mede nada.*
+- **A2** Controles de falsificação (dois) → `L_faith_v2` ≥ 0.90 em ambos:
+  - (a) respostas lidas de um cache **independente** (não sustentadas por este contexto);
+  - (b) atenção **difusa** (uniforme) → a resposta é uma mistura, não corresponde a
+    nenhuma entrada do cache.
+  *Este é o critério que a v1 falhava: uma métrica que não acusa resposta não-sustentada
+  não mede nada.*
+  **Correção de rota registrada:** a primeira versão deste plano usava "valores
+  embaralhados" como controle — errado. Embaralhar valores deixa toda resposta
+  sustentada (pelo cache errado): isso é falha de **acurácia**, não de **fidelidade**.
+  O controle tem de produzir uma resposta que o contexto não sustenta.
 - **A3** INT8 → `L_faith_v2` ≤ 0.05 e `acc` ≥ 0.95.
 - **A4** INT4 → medir e reportar (sem limiar fixo, é o dado que interessa).
 - **A5** Execução sem erro, JSON salvo, números citáveis no relatório.
@@ -51,13 +59,14 @@ corrompido) onde a métrica TEM de acusar fidelidade zero.
 - Produz: `l_faith_v2(answers, vals, used_keys, tol) -> (l_faith: float, detalhes: dict)`
 - Produz: `run_trial_v2(rng, bits, corrupt=False) -> dict`
 
-- [ ] **Step 1:** definir `supported(i)` = a resposta está a menos de `TOL` de ALGUMA
+- [x] **Step 1:** definir `supported(i)` = a resposta está a menos de `TOL` de ALGUMA
       entrada do cache **e** essa entrada é a de maior massa (`used_key`).
-- [ ] **Step 2:** caso de teste que a v1 errava — cache corrompido (`vals` embaralhados)
-      deve dar `L_faith_v2 ≥ 0.90`; a v1 daria 0.0.
-- [ ] **Step 3:** implementar `run_trial_v2` espelhando a v1 (mesma construção de chaves,
-      valores e queries) para que a comparação v1×v2 seja sobre a MESMA distribuição.
-- [ ] **Step 4:** rodar `bits ∈ {16, 8, 4}` × `corrupt ∈ {False, True}`, 20 trials.
-- [ ] **Step 5:** checar A1–A5 e registrar; se A2 falhar, a métrica está errada — não o teste.
-
-- [ ] **Step 6:** commit local (sem push).
+- [x] **Step 2:** caso de teste que a v1 errava — controles de falsificação têm de ser
+      acusados (`L_faith ≥ 0.90`); a v1 dava 0.0. Ver `RESULTADO_KVFAITH_2026-10-02.md`.
+- [x] **Step 3:** implementar `run_trial_v2` espelhando a v1 na distribuição (mesma
+      construção de chaves/valores/queries).
+- [x] **Step 4:** rodar `bits ∈ {16, 8, 4}` × modos; 20 trials. FEITO — mais uma varredura
+      de ganho (`kvquant_scan_gain.py`).
+- [x] **Step 5:** checar A1–A5. **TODOS PASSARAM** → métrica validada. E o achado principal
+      foi NEGATIVO: em cache bem-condicionado, 4 bits não degrada nada (Δacc=0, ΔL_faith=0).
+- [x] **Step 6:** commit local (sem push).

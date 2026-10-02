@@ -89,14 +89,13 @@ class TangoV21(tf.keras.layers.Layer):
 
 class ConsciousV21(tf.keras.Model):
     def __init__(self, coupling=False, langevin=False, layer_scale_init=0.0,
-                 attn_cls=None, attn_prefix="attn", **attn_kw):
-        # Gancho p/ sondas: attn_cls troca a classe do bloco (None = TangoV21).
-        # Chamada padrão é byte-idêntica ao comportamento anterior.
+                 attn_cls=None, attn_prefix="attn", ffn_mult=4, **attn_kw):
+        # ffn_mult: alarga o FFN p/ controle de capacidade (braço C). Default 4 = idêntico.
         super().__init__()
         self.embed = tf.keras.layers.Embedding(VOCAB_SIZE, D_MODEL)
         self.pos = tf.keras.layers.Embedding(SEQ_LEN, D_MODEL)
         Cls = attn_cls or TangoV21
-        self.blocks = [(Cls(D_MODEL, coupling=coupling, langevin=langevin, layer_scale_init=layer_scale_init, name=f"{attn_prefix}_{i}", **attn_kw), PreLNFFN(D_MODEL, D_MODEL*4, name=f"ffn_{i}")) for i in range(LAYERS)]
+        self.blocks = [(Cls(D_MODEL, coupling=coupling, langevin=langevin, layer_scale_init=layer_scale_init, name=f"{attn_prefix}_{i}", **attn_kw), PreLNFFN(D_MODEL, int(D_MODEL*ffn_mult), name=f"ffn_{i}")) for i in range(LAYERS)]
         self.ln = tf.keras.layers.LayerNormalization(dtype="float32")
         self.head = tf.keras.layers.Dense(VOCAB_SIZE, dtype="float32")
     def call(self, inp, training=False, introspection_active=False):

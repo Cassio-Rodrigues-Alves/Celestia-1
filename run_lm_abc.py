@@ -68,6 +68,20 @@ def _dense(g):
     return tf.convert_to_tensor(g) if g is not None else None
 
 
+def eval_per_tok(m, va_x, va_y, V, micro=32):
+    """Loss por token com micro-batches: val inteiro ([512,128,32000] = 8.4GB)
+    estoura o T4; fatiado cabe. Mesma matemática, só o batch muda."""
+    import tensorflow as tf
+    outs = []
+    for i in range(0, len(va_x), micro):
+        xb = tf.constant(va_x[i:i + micro])
+        yb = tf.constant(va_y[i:i + micro])
+        logits = m(xb, training=False)
+        outs.append(tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=yb, logits=logits[..., :V]).numpy())
+    return np.concatenate(outs, axis=0)
+
+
 def train_windows(m, tr_x, tr_y, va_x, va_y, V, steps, lr, clip, batch, seed,
                   label="", verbose_every=200):
     """Loop next-token padrão. Retorna dict de métricas + flags de convergência."""
@@ -92,9 +106,8 @@ def train_windows(m, tr_x, tr_y, va_x, va_y, V, steps, lr, clip, batch, seed,
         opt.apply_gradients(zip(grads, m.trainable_variables))
         if verbose_every and (s % verbose_every == 0 or s == steps - 1):
             print(f"  [{label}] step {s}: loss={float(loss):.4f} gn={gn:.3f}", flush=True)
-    lv_logits = m(va_x, training=False)
-    per_tok = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=va_y, logits=lv_logits[..., :V]).numpy()
+    lv_logits = None
+    per_tok = eval_per_tok(m, va_x, va_y, V)
     lv = float(per_tok.mean())
     from lm_abc import slice_losses
     sl = slice_losses(per_tok, va_x, va_y)

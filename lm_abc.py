@@ -1,13 +1,14 @@
 """lm_abc — utilidades do protocolo A/B/C em português real (DR-ITEM-6.x).
 
-- count_nonemb: parâmetros não-embedding (embed/pos_embed fora, head dentro).
-- calibrate_ffn: acha ffn_mult p/ o braço C igualar N do braço B (<1%).
-- slice_copy_general:prefix_match_frac por janela + split cópia-vs-geral.
-- split_windows: janelas train/val determinísticas de ids planos.
+Convenção de alinhamento (padrão next-token LM, SEM o deslocamento +2 do
+harness sintético): janela seq (len L+1) -> x=seq[:-1], y=seq[1:];
+alvo(p) = y[p] com contexto x[0..p]. Cópia(p) = y[p] visto em x[0..p].
 
 Contribuição: execução do TODO_deep-research-agent.md (DR-ITEM-6.x).
 """
 from __future__ import annotations
+
+import hashlib
 
 import numpy as np
 
@@ -47,44 +48,58 @@ def calibrate_ffn(build_fn, n_target, seq_len=32, tol=0.01):
     return mult, n
 
 
-def split_windows(ids, seq_len, val_frac=0.1, seed=0):
-    """Janelas (x=seq[:-1], y=seq[1:]) de ids planos. Val = primeiros 10%
-    (determinístico dado o arquivo; sem fronteira de doc — limitação registrada:
-    o TODO pede split por documento com hash, o que exige corpus com docs)."""
+def split_recipe(corpus_path, size, seq_len, val_frac, seed):
+    """Receita do split documentada (TODO exige hash; ids planos não têm docs —
+    limitação registrada: val = primeiros 10%, determinístico dado o arquivo)."""
+    h = hashlib.sha256()
+    h.update(f"{corpus_path}|{size}|{seq_len}|{val_frac}|{seed}".encode())
+    with open(corpus_path, "rb") as f:
+        h.update(f.read(1 << 20))
+        f.seek(max(0, size - (1 << 20)))
+        h.update(f.read(1 << 20))
+    return h.hexdigest()[:16]
+
+
+def split_windows(ids, seq_len, val_frac=0.1, seed=0, val_cap=512):
+    """Janelas next-token de ids planos. Val = início do arquivo, CAPADO
+    (val_cap janelas — val gigante explode o custo de eval)."""
     ids = np.asarray(ids, dtype=np.int64)
     n_win = len(ids) // (seq_len + 1)
     ids = ids[:n_win * (seq_len + 1)].reshape(n_win, seq_len + 1)
-    n_val = max(1, int(n_win * val_frac))
+    n_val = max(1, min(int(n_win * val_frac), val_cap))
     val = ids[:n_val]
     train = ids[n_val:]
     rng = np.random.default_rng(seed)
     idx = rng.permutation(len(train))
-    return (train[idx][:, :-1], train[idx][:, 1:], val[:, :-1], val[:, 1:])
+    train = train[idx]
+    return (train[:, :-1], train[:, 1:], val[:, :-1], val[:, 1:])
 
 
 def prefix_match_frac(val_x, val_y):
-    """Fração de alvos que já ocorreram no contexto (por janela). Elhage/Olsson."""
-    x = np.asarray(val_x)
-    frac = []
-    for i in range(len(x)):
-        seen = set(x[i, :-1].tolist())
-        frac.append(np.mean([t in seen for t in np.asarray(val_y)[i].tolist()]))
-    return np.asarray(frac)
-
-
-def slice_losses(model, val_x, val_y, V, loss_fn):
-    """Loss média nas fatias cópia (alvo visto no contexto) vs geral. TF."""
-    import tensorflow as tf
-    logits = model(val_x, training=False)
-    per_tok = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=val_y[:, 1:], logits=logits[:, :-1, :V])
-    seen = np.zeros_like(np.asarray(val_y)[:, 1:], dtype=bool)
-    xa = np.asarray(val_x)
+    """Fração de alvos vistos no contexto ESTRITO (x[0..p-1] para o alvo y[p]).
+    Definição exigente de propósito: eco da posição atual não conta como cópia."""
+    xa, ya = np.asarray(val_x), np.asarray(val_y)
+    tot = hit = 0
     for i in range(len(xa)):
-        s = set(xa[i, :-1].tolist())
-        seen[i] = [t in s for t in np.asarray(val_y)[i, 1:]]
-    per_tok = per_tok.numpy()
-    m_copia, m_geral = seen, ~seen
-    return {"loss_copia": float(per_tok[m_copia].mean()) if m_copia.any() else None,
-            "loss_geral": float(per_tok[m_geral].mean()) if m_geral.any() else None,
-            "frac_copia": float(m_copia.mean())}
+        seen = set()
+        for p in range(xa.shape[1]):
+            hit += ya[i, p] in seen
+            tot += 1
+            seen.add(int(xa[i, p]))
+    return hit / max(tot, 1)
+
+
+def slice_losses(per_tok, val_x, val_y):
+    """Divide loss por token em cópia (alvo visto no contexto até p) vs geral."""
+    per_tok = np.asarray(per_tok)
+    xa, ya = np.asarray(val_x), np.asarray(val_y)
+    mc = np.zeros_like(per_tok, dtype=bool)
+    for i in range(len(xa)):
+        seen = set()
+        for p in range(xa.shape[1]):
+            mc[i, p] = ya[i, p] in seen
+            seen.add(int(xa[i, p]))
+    c, g = per_tok[mc], per_tok[~mc]
+    return {"loss_copia": float(c.mean()) if c.size else None,
+            "loss_geral": float(g.mean()) if g.size else None,
+            "frac_copia": float(mc.mean())}

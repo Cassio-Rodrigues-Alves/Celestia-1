@@ -48,3 +48,21 @@ está confirmada na escala real. Sem isso, v21.5 segue sonda, não candidata.
 *Proveniência: console Colab colado no chat (artefatos CSV ficaram no /tmp do
 runtime; runtime posterior morreu com a quota). Números acima são transcrição
 literal do bloco === VEREDITO === + linhas de run.*
+
+## Piloto qkv-only, 1000 steps, lr 3e-4 (T4, 02/10) — PORTÃO FALHOU, matriz cancelada
+
+- qkv/induction/s0: train 6.28028 → **loss_val 6.25580**, clip 1.00 (todo o
+  trajeto), gn 5.9→3.2, layer_scale_L0 0.08739 (caiu de 0.1), grad_conn stone
+  1e-3. Critério (val < 5.92641): **NÃO ATINGIDO** (6.25580 > 5.92641, e acima
+  do próprio uniforme 6.23832).
+- Progressão com orçamento: 300 steps → 6.37272; 1000 steps @3e-4 → 6.25580.
+  Move na direção certa a ~0.00017/step — extrapolação linear exigiria ~2000+
+  steps só para encostar no uniforme, sem garantia.
+- **Sinal arquitetural novo e importante:** `layer_scale` 0.1 → 0.087. O
+  otimizador está FECHANDO o portão da atenção, não abrindo. Dinâmica
+  auto-reforçada plausível: caminho sem gradiente útil → gate fecha → menos
+  gradiente → gate continua fechado. No microscópio (2 camadas) o circuito se
+  forma antes do gate fechar; em 12 camadas, não.
+- Veredito do piloto: **não justifica a matriz 3-seed completa**. v21.5-qkv
+  segue sonda: mecanismo provado no microscópio (piso 1.2939), **não transfere
+  em orçamento prático na escala real**. Arquivar como informação, não derrota.

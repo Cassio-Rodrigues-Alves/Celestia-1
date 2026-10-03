@@ -173,6 +173,10 @@ def main():
              "batch": a.batch, "seeds": a.seeds, "seq_len": a.seq_len, "ls": a.ls}
 
     rows = []
+    from lm_abc import bigram_floor, paired_t
+    bg = bigram_floor(ids, seq_len=a.seq_len)
+    print(f"piso de bigrama (prontidão): {bg:.5f} — braço acima disto: SEM_PRONTIDAO", flush=True)
+    audit["bigram_floor"] = round(bg, 5)
     for tag in a.arms:
         fm = ffn_c if tag == "C" else 4
         for sd in a.seeds:
@@ -188,9 +192,11 @@ def main():
                          f"{r['loss_copia']:.5f}" if r["loss_copia"] else "NA",
                          f"{r['loss_geral']:.5f}" if r["loss_geral"] else "NA",
                          f"{r['frac_copia']:.3f}", "TRANSIENTE" if r["transiente"] else "ok",
+                         "SEM_PRONTIDAO" if r["loss_val"] >= bg else "PRONTO",
                          f"{time.time() - t0:.0f}"])
             print(f"[{tag}/s{sd}] val={r['loss_val']:.5f} copia={r['loss_copia']} "
-                  f"geral={r['loss_geral']} {'TRANSIENTE' if r['transiente'] else ''}", flush=True)
+                  f"geral={r['loss_geral']} {'TRANSIENTE' if r['transiente'] else ''}"
+                  f"{' SEM_PRONTIDAO' if r['loss_val'] >= bg else ''}", flush=True)
     if not a.no_floor and a.seeds:  # piso same-seed: repete A/seed[0]
         sd = a.seeds[0]
         set_seeds(sd)
@@ -203,10 +209,25 @@ def main():
     with open(out / "metrics_abc.csv", "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["arm", "seed", "loss_train", "loss_val", "ppl", "clip_rate", "gn",
-                    "nan_steps", "loss_copia", "loss_geral", "frac_copia", "status", "wall_s"])
+                    "nan_steps", "loss_copia", "loss_geral", "frac_copia", "status",
+                    "prontidao", "wall_s"])
         w.writerows(rows)
+    summ = {}
+    for tag in a.arms:
+        vals = [float(r[3]) for r in rows if r[0] == tag]
+        summ[tag] = {"mean": round(sum(vals) / len(vals), 5), "list": vals}
+    delta = {}
+    if "A" in summ and "B" in summ:
+        va = [float(r[3]) for r in rows if r[0] == "A"]
+        vb = [float(r[3]) for r in rows if r[0] == "B"]
+        t, n = paired_t(va, vb)
+        delta = {"B-A_mean": round(summ["B"]["mean"] - summ["A"]["mean"], 5),
+                 "t_pareado": round(t, 2),
+                 "nota": "|t|>4.30 (2 g.l.) ⇒ p<0.05 bicaudal"}
+    audit["resumo"] = {"por_braco": summ, "comparacao": delta}
     (out / "audit.json").write_text(json.dumps(audit, indent=2))
     print(f"ok -> {out}/metrics_abc.csv + audit.json (piso: {audit.get('piso_same_seed')})")
+    print(f"resumo: {json.dumps(audit['resumo'])}")
     return 0
 
 

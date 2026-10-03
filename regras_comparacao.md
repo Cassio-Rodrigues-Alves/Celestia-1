@@ -24,6 +24,15 @@ Faltou uma métrica = teste inválido, refazer.
 
 ### 2.1 Precisão e pacote de diagnóstico (obrigatório em toda comparação)
 - **Ranking/promoção:** 3 casas decimais (comparação entre versões).
+- **Estatística:** desvio-padrão AMOSTRAL (n−1) e **teste t pareado por seed**
+  em todo Δ; média vinda de 1 seed não sustenta conclusão direcional.
+- **Piso honesto:** spread cross-seed E cross-init da mesma config — nunca 0.0
+  por determinismo (determinismo elimina ruído de re-run, não loteria de init).
+- **Portão de prontidão (PT real):** só comparar braços quando AMBOS estiverem
+  **abaixo do piso de bigrama** medido no corpus completo; acima dele o modelo
+  ainda aprende estatística token-a-token e não há contexto a explorar. Abaixo
+  do piso, sem leitura — veredito "inconclusivo neste orçamento". A guarda
+  `TRANSIENTE` (clip_rate) continua valendo em paralelo.
 - **Diagnóstico:** 5 casas decimais + pacote mínimo (`diag_v21.py` → `diag.json` + `diag_geometry.csv` no bundle):
   - geometria por camada: `fro`, `sigma_max/min`, erro ortogonal (`||W^T W - I||_F`), raio espectral — `w_stone`, `w_hu`, `w_uh`, `w_uu`
   - `layer_scale`, `beta`, `gate` (mean/min/max) por camada — trajetória do `layer_scale` vs init é sinal-chave

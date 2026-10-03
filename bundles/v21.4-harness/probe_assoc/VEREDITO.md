@@ -1,4 +1,4 @@
-# veredito — probe_assoc, matriz completa (Colab CPU, 10/10)
+# veredito — probe_assoc, matriz completa (Colab CPU, 02/10)
 
 **Status: C1–C4 CONFIRMADOS com 3 seeds. Atenção linear resolve o que o grafo
 fixo não resolve, sem regressão, com gate vivo.**
@@ -29,14 +29,25 @@ Ref QKV: induction 1.30733, lag 0.00306 — **atenção linear empata com softma
 | assoc | 1.30738±0.00368 | ~0.08 / ~0.50 | — | ✓ |
 
 Leitura do gate: camada 0 colapsa para memória (alpha≈0.01), camada 1 mistura;
-em `copy` (trivial) fica balanceado 0.51/0.51. **Especialização por profundidade
-emergente** — o gate descobriu sozinho onde cada roteamento presta. C4 passa
-pela média, mas o padrão por camada é o achado mais informativo.
+em `copy` (trivial) fica balanceado 0.51/0.51. **Padrão observado, sem ablação:**
+com 2 camadas e a memória resolvendo tudo sozinha, alpha≈0.01 na camada 0 pode
+ser deriva, não descoberta. Não afirmar intencionalidade do gate sem ablação
+(fixar alpha e comparar). C4 passa pela média — registro honesto do limite.
 
 ## C5 (honestidade)
 
 Efeitos (Δ≈1.47 em induction, ≈1.51 em lag vs fixo) ≫ stds entre seeds
 (≤0.005). Nenhum NaN em 24 runs.
+
+## Notas de revisão (03/10)
+
+- Hybrid empata com replace em todas as tarefas (ex.: 1.312 vs 1.310): o grafo
+  fixo não acrescenta nada onde há conteúdo — o conteúdo subsume a posição
+  nestas tarefas.
+- Esta sonda herda o mesmo risco de transferência da QKV (microscópio ≠ escala
+  real em orçamento prático). Sem privilégio no pivot.
+- JSON bruto perdido (só transcrição do console); regeneração aceita (oferta do
+  revisor: refazer 24 runs na CPU).
 
 *Proveniência: transcrição do console Colab (resumo + 24 linhas de run);
 `probe_assoc.json` bruto ficou no /tmp do runtime.*

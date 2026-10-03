@@ -1,20 +1,26 @@
 # veredito — v21.5-qkv (T4, 2 sessões bit-idênticas)
 
-**Status: NÃO PROMOVE. Critério pré-registrado da induction: FALSIFICADO nesta
-escala/prazo. `lag` deu sinal positivo (+0.18) mas ruidoso. Hipótese principal
-para a divergência micro-vs-T4: SUBTREINO, não refutação do mecanismo.**
+**Status: NÃO PROMOVE. Induction: sem efeito detectável (não "falsificada" —
+ver correção). `lag`: sugestiva, não significativa (p≈0,22). Leitura conjunta:
+INCONCLUSIVO nesta escala/prazo, com hipótese principal de SUBTREINO.**
 
 ## Números (12 runs, 300 steps, V=512, uniforme ln512=6.23832, 3 seeds)
 
-- **induction:** fixo 6.30835/6.35494/6.30502 (média 6.32277, std 0.017) |
-  qkv 6.37272/6.35047/6.30224 (média 6.34181, std 0.030) → ganho −0.01904.
-  Critério (qkv < 0.95×uniforme = 5.92641): **FALSIFICADA**. Ambas ≈ uniforme.
-- **lag:** fixo 5.88178/5.84866/5.86757 (média 5.86600, std 0.014) |
-  qkv 5.49524/5.75237/5.80206 (média 5.68322, std 0.134) → ganho +0.18278.
-  Critério: **CONFIRMADA** pelo limiar, com ressalva de variância (std do qkv
-  0.134 ≈ ordem do ganho; s0 destoa para melhor). Efeito sugestivo, não sólido.
-- Zero NaN/Inf. `clip_rate` induction = 1.00 do step 0 ao 299, gn ~5 estável
-  (regime transiente — nada convergiu). `diag`: layer_scale_L0 = 0.13809.
+- **induction:** fixo 6.30835/6.35494/6.30502 (média 6.32277, std populacional
+  0.023) | qkv 6.37272/6.35047/6.30224 (média 6.34181, std 0.030).
+  Ganho por seed (fixo−qkv): −0.06437/+0.00447/+0.00278 → média −0.01904,
+  t pareado ≈ −0.84, p ≈ 0.49. A média negativa vem de UMA seed.
+  Critério (qkv < 5.92641): não atingido por nenhum braço. **Sem efeito
+  detectável** (ausência de evidência, não evidência de ausência).
+- **lag:** fixo 5.88178/5.84866/5.86757 (média 5.86600) |
+  qkv 5.49524/5.75237/5.80206 (média 5.68322) → ganho +0.18278.
+  **Correção:** o próprio fixo (5.866) já passa o limiar 5.926 — o limiar não
+  discrimina. Ganho por seed 0.387/0.096/0.066, t = 1.79, 2 g.l., p ≈ 0.22:
+  compatível com ruído. **Rebaixado de "CONFIRMADA com ressalva" para
+  inconclusivo.**
+- Zero NaN/Inf. `clip_rate` = 1.00 do step 0 ao 299 **nos dois braços**
+  (indicador de transiente, não evidência específica contra o QKV).
+  `diag`: layer_scale_L0 = 0.13809.
 - Warnings de `attn_*/layer_scale` sem gradiente: peso-morto da troca de blocos
   (código pré-gancho `attn_cls`); não afeta o forward. Já corrigido no repo.
 
@@ -30,14 +36,25 @@ same-seed ≈ 0 para este harness.
 | | microscópio (resolveu) | T4 (não resolveu) |
 |---|---|---|
 | camadas/dim | 2L/64 | 12L/768 |
+| vocabulário | 16 | 512 (32×) |
+| batch | 8 | 2 |
+| alvos vistos | 96.000 | 18.000 (5,3× menos) |
 | LR | 1e-3 | 1e-4 |
 | steps | 400 | 300 |
 | params novos aleatórios (QKV) | ~25K | ~21M |
 
-Projeções QKV 768×768×3/camada nascidas do zero, lr 10× menor, 300 passos,
-batch 2: o circuito de indução provavelmente nem saiu do transiente
-(clip 1.00 o tempo todo = evidência). O mecanismo está provado no microscópio
-(no piso 1.2939); falta orçamento de treino na escala real, não evidência contra.
+Vocabulário 32× maior, batch 4× menor e 5× menos alvos pesam tanto ou mais
+que o LR na explicação. O circuito provavelmente nem saiu do transiente;
+o mecanismo segue provado no microscópio (piso 1.2939). Falta orçamento
+(ou desenho que forme o circuito com menos alvos), não evidência contra.
+
+## Gate fechando: hipótese, não achado
+
+`layer_scale` L0 0.1→0.087 no piloto (1 seed) contra 0.138 no run de 300 steps:
+sinais opostos entre runs. Sem ablação (ex.: LS fixo) e sem repetição, "o gate
+sufoca o circuito" é hipótese de trabalho — é exatamente o que a sonda barata
+da opção (a) testaria. Removida a extrapolação "0,00017/passo" (comparava LRs
+diferentes).
 
 ## Próximo teste (quando a quota GPU voltar)
 
@@ -70,24 +87,29 @@ literal do bloco === VEREDITO === + linhas de run.*
 
 ## ARQUIVAMENTO FORMAL (decisão do Cássio, 03/10 — Porta 1)
 
-**v21.5-qkv ARQUIVADA. Motivo escrito (critério B≈A pós-orçamentos):**
+**v21.5-qkv ARQUIVADA. Motivo escrito (revisado pós-revisão: INCONCLUSIVA nos
+orçamentos testados, não refutada):**
 
 1. Microscópio (2L/d64): QKV resolve induction (1.30733) e lag (0.00306) —
    mecanismo provado, no piso teórico.
 2. Escala real, induction: 300 steps lr 1e-4 → qkv 6.34181 vs fixo 6.32277
-   (Δ=−0.019, ruído); piloto 1000 steps lr 3e-4 → 6.25580 (portão 5.93 falhou).
+   (ganho −0.019, p≈0.49 — sem efeito detectável); piloto 1000 steps lr 3e-4
+   → 6.25580 (portão 5.93 não atingido).
 3. Escala real, PT (A/B/C): 500 steps Δ=+0.016; 2000 steps Δ=**+0.065**,
-   uniforme nas fatias cópia e geral. Direção consistente e errada.
-4. Dinâmica explicativa: `layer_scale` 0.1→0.087 (gate fechando sobre caminho
-   sem gradiente útil); gradientes do acoplamento 10–100× abaixo da pedra (P2).
+   uniforme nas fatias cópia e geral (1 seed, sem piso — sem leitura de efeito).
+4. Dinâmica em aberto (hipótese, não achado): `layer_scale` 0.1→0.087 no piloto
+   contra 0.138 no run de 300 steps; gradientes do acoplamento 10–100× abaixo
+   da pedra (P2).
 
-Em 5 orçamentos (50/200 sintético, 300/1000 induction, 500/2000 PT), **zero
-sinal positivo do QKV em lugar nenhum**. Não é derrota de treino — é evidência
-contra a hipótese "falta roteamento por conteúdo" **nesta arquitetura e nestes
-orçamentos**. Reabrir exige: (i) orçamento 10× com convergência verificada, ou
-(ii) desenho que impeça o gate de fechar antes do circuito nascer
-(ex.: layer_scale fixo — opção (a), ainda aberta como sonda).
+Em 5 orçamentos, **nenhum sinal positivo do QKV — mas todos abaixo do regime
+em que roteamento faria diferença** (modelos ainda entre unigrama e bigrama em
+PT; induction T4 em transiente com clip 1.00). Leitura honesta: **inconclusivo,
+não evidência contra**. Reabrir exige: (i) orçamento com convergência
+verificada + portão de prontidão (regra 2.1: abaixo do piso de bigrama), ou
+(ii) sonda barata do gate (layer_scale fixo — opção (a)).
 
 **Pivot do projeto:** o que funciona é roteamento posicional (lag resolvido
 pelo grafo fixo). A pergunta passa a ser o que o TANGO faz de único SEM
-conteúdo — não mais como importar conteúdo para dentro dele.
+conteúdo — não mais como importar conteúdo para dentro dele. A sonda de
+memória associativa (CEL-2.001) herda o mesmo risco de transferência e entra
+na mesma fila de prova, sem privilégio.

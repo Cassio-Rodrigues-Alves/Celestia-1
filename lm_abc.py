@@ -103,3 +103,37 @@ def slice_losses(per_tok, val_x, val_y):
     return {"loss_copia": float(c.mean()) if c.size else None,
             "loss_geral": float(g.mean()) if g.size else None,
             "frac_copia": float(mc.mean())}
+
+
+def bigram_floor(ids, seq_len=128, sample_ids=3_000_000, eval_windows=512):
+    """Loss de um modelo bigrama (contagem) — piso de PRONTIDÃO (regra 2.1).
+    Amostra a CAUDA do corpus (disjunta do val, que é o início). Braço acima
+    disto ainda aprende estatística token-a-token: sem leitura direcional."""
+    import math
+    from collections import Counter
+    ids = np.asarray(ids, dtype=np.int64)
+    seg = ids[-sample_ids:]
+    pairs = Counter(zip(seg[:-1].tolist(), seg[1:].tolist()))
+    tot = Counter(seg[:-1].tolist())
+    n = len(seg) // (seq_len + 1)
+    ev = seg[:n * (seq_len + 1)].reshape(n, seq_len + 1)[:eval_windows]
+    loss, tok = 0.0, 0
+    for i in range(len(ev)):
+        x, y = ev[i, :-1], ev[i, 1:]
+        for p in range(len(x)):
+            c = tot.get(int(x[p]), 0)
+            pv = pairs.get((int(x[p]), int(y[p])), 0) / c if c else 0.0
+            loss += -math.log(max(pv, 1e-12))
+            tok += 1
+    return loss / max(tok, 1)
+
+
+def paired_t(a, b):
+    """t pareado (a−b) com n≥2; retorna (t, n). p-valor fica p/ o leitor
+    (n=3, g.l.=2: |t|>4.30 ⇒ p<0.05 bicaudal)."""
+    import math
+    d = [x - y for x, y in zip(a, b)]
+    n = len(d)
+    m = sum(d) / n
+    s = math.sqrt(sum((v - m) ** 2 for v in d) / (n - 1)) if n > 1 else float("nan")
+    return (m / (s / math.sqrt(n)) if s > 0 else 0.0), n

@@ -42,6 +42,18 @@
 ## Restrições permanentes (não violar de madrugada)
 - Não alterar `model_v21.py` nem `regras_comparacao.md` (documentos comparativos).
   Propostas vão em arquivo separado, marcadas como proposta.
+  (Exceções registradas com motivo: gancho `attn_cls` neutro + `ffn_mult` neutro,
+  ambos default-idênticos — ver log.)
 - Não rodar treino pesado: RAM livre ~0,9 GB (Firefox do Cássio está aberto — não mexer).
 - Não usar GPU/Colab (exige login do Cássio → proibido sem autorização).
 - Todo número local é **debug** (regra 1.3). Nenhum veredito de promoção sai daqui.
+
+## Pivot 03/10 (decisão do Cássio — Porta 1): v21.5-qkv ARQUIVADA
+
+Motivo em `bundles/v21.5-qkv/veredito.md` (seção ARQUIVAMENTO FORMAL). A fila
+P1–P6 está cumprida; a fila nova nasce da pergunta pivot: **o que o TANGO faz
+de único SEM conteúdo?** (roteamento posicional funciona — `lag` prova).
+Candidatos em aberto, nenhum iniciado: (a) QKV com layer_scale fixo (sonda);
+(b) caracterizar capacidade posicional (eco com atraso variável, janela de
+alcance do grafo k=6); (c) A/B/C oficial em PT se GPU longa aparecer
+(protocolo pronto em `run_lm_abc.py`, piloto calibra N).

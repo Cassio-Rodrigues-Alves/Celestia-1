@@ -44,6 +44,7 @@ batch 2: o circuito de indução provavelmente nem saiu do transiente
 `run_v21_5_qkv.py --models fixo qkv --tasks induction --steps 1000` com lr 3e-4
 (6 runs ≈ 25 min): se qkv descolar do uniforme e fixo não, a hipótese original
 está confirmada na escala real. Sem isso, v21.5 segue sonda, não candidata.
+(Executado 02/10 — ver piloto abaixo. Não confirmou.)
 
 *Proveniência: console Colab colado no chat (artefatos CSV ficaram no /tmp do
 runtime; runtime posterior morreu com a quota). Números acima são transcrição
@@ -66,3 +67,27 @@ literal do bloco === VEREDITO === + linhas de run.*
 - Veredito do piloto: **não justifica a matriz 3-seed completa**. v21.5-qkv
   segue sonda: mecanismo provado no microscópio (piso 1.2939), **não transfere
   em orçamento prático na escala real**. Arquivar como informação, não derrota.
+
+## ARQUIVAMENTO FORMAL (decisão do Cássio, 03/10 — Porta 1)
+
+**v21.5-qkv ARQUIVADA. Motivo escrito (critério B≈A pós-orçamentos):**
+
+1. Microscópio (2L/d64): QKV resolve induction (1.30733) e lag (0.00306) —
+   mecanismo provado, no piso teórico.
+2. Escala real, induction: 300 steps lr 1e-4 → qkv 6.34181 vs fixo 6.32277
+   (Δ=−0.019, ruído); piloto 1000 steps lr 3e-4 → 6.25580 (portão 5.93 falhou).
+3. Escala real, PT (A/B/C): 500 steps Δ=+0.016; 2000 steps Δ=**+0.065**,
+   uniforme nas fatias cópia e geral. Direção consistente e errada.
+4. Dinâmica explicativa: `layer_scale` 0.1→0.087 (gate fechando sobre caminho
+   sem gradiente útil); gradientes do acoplamento 10–100× abaixo da pedra (P2).
+
+Em 5 orçamentos (50/200 sintético, 300/1000 induction, 500/2000 PT), **zero
+sinal positivo do QKV em lugar nenhum**. Não é derrota de treino — é evidência
+contra a hipótese "falta roteamento por conteúdo" **nesta arquitetura e nestes
+orçamentos**. Reabrir exige: (i) orçamento 10× com convergência verificada, ou
+(ii) desenho que impeça o gate de fechar antes do circuito nascer
+(ex.: layer_scale fixo — opção (a), ainda aberta como sonda).
+
+**Pivot do projeto:** o que funciona é roteamento posicional (lag resolvido
+pelo grafo fixo). A pergunta passa a ser o que o TANGO faz de único SEM
+conteúdo — não mais como importar conteúdo para dentro dele.

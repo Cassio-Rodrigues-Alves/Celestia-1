@@ -53,7 +53,9 @@
 Motivo em `bundles/v21.5-qkv/veredito.md` (seção ARQUIVAMENTO FORMAL). A fila
 P1–P6 está cumprida; a fila nova nasce da pergunta pivot: **o que o TANGO faz
 de único SEM conteúdo?** (roteamento posicional funciona — `lag` prova).
-Candidatos em aberto, nenhum iniciado: (a) QKV com layer_scale fixo (sonda);
+Candidatos em aberto, nenhum iniciado: (a) QKV com layer_scale fixo (sonda) —
+  EXECUTADA 04/10 (v21.6-gatefix): val 6.24997 ≈ uniforme, hipótese do gate
+  MORTA, veredito em `bundles/v21.6-gatefix/VEREDITO.md`;
 (b) caracterizar capacidade posicional (eco com atraso variável, janela de
 alcance do grafo k=6); (c) A/B/C oficial em PT se GPU longa aparecer
 (protocolo pronto em `run_lm_abc.py`, piloto calibra N).

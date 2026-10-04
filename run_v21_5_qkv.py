@@ -46,6 +46,9 @@ def parse_args():
     ap.add_argument("--L", type=int, default=32)
     ap.add_argument("--B", type=int, default=2)
     ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--ls-init", type=float, default=0.1)
+    ap.add_argument("--freeze-ls", action="store_true",
+                    help="sonda gate-fixo: layer_scale congelado (não entra no otimizador)")
     return ap.parse_args()
 
 
@@ -54,7 +57,8 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     clip_norm = 1.5
     print(f"== {VER} == models={args.models} tasks={args.tasks} seeds={args.seeds} "
-          f"steps={args.steps} V={args.V} (uniforme={UNIFORME:.5f})", flush=True)
+          f"steps={args.steps} V={args.V} (uniforme={UNIFORME:.5f}) "
+          f"ls_init={args.ls_init} freeze_ls={args.freeze_ls}", flush=True)
 
     log = StabilityLogger(OUT / "stab_per_step.csv")
     rows, console = [], []
@@ -66,7 +70,8 @@ def main():
             for sd in args.seeds:
                 t0 = time.time()
                 set_seeds(sd)
-                m = cls(coupling=True, langevin=False, layer_scale_init=0.1)
+                m = cls(coupling=True, langevin=False, layer_scale_init=args.ls_init,
+                        ls_trainable=not args.freeze_ls)
                 env = make_env(task, V=args.V, L=args.L, B=args.B, seed=sd, n_val=8)
                 label = f"{model_tag}/{task}"
                 r = train_run(m, env, args.steps, V=args.V, clip_norm=clip_norm, lr=args.lr,

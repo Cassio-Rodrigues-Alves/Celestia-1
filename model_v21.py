@@ -4,7 +4,7 @@ from legacy_model_reference import PreLNFFN  # noqa
 VOCAB_SIZE, D_MODEL, LAYERS, SEQ_LEN = 32000, 768, 12, 128
 
 class TangoV21(tf.keras.layers.Layer):
-    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, langevin=False, layer_scale_init=0.0, **kw):
+    def __init__(self, d_model, beta_start=0.15, eta=0.005, coupling=False, coupling_scale=0.01, langevin=False, layer_scale_init=0.0, ls_trainable=True, **kw):
         super().__init__(**kw)
         self.d_model, self.eta = d_model, eta
         self.coupling, self.coupling_scale = coupling, coupling_scale
@@ -12,8 +12,8 @@ class TangoV21(tf.keras.layers.Layer):
         self.layer_scale_init = layer_scale_init
         self.beta = tf.Variable(beta_start, trainable=False, dtype=tf.float32)
         self.norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        # ponytail: layer_scale escalar por camada, init configurável (0 na baseline)
-        self.layer_scale = self.add_weight(shape=(), initializer=tf.keras.initializers.Constant(layer_scale_init), trainable=True, name="layer_scale")
+        # ponytail: layer_scale escalar por camada; ls_trainable=False = sonda gate-fixo
+        self.layer_scale = self.add_weight(shape=(), initializer=tf.keras.initializers.Constant(layer_scale_init), trainable=ls_trainable, name="layer_scale")
 
     def _causal_sw_np(self, n=SEQ_LEN, k=6, p=0.1):
         adj = np.zeros((n, n), np.float32)

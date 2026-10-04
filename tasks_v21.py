@@ -34,6 +34,8 @@ import numpy as np
 import tensorflow as tf
 
 TASKS = ("mem", "copy", "induction", "assoc", "lag")
+# "lagJ" (ex.: lag2, lag12): eco com atraso J explícito — sonda de ALCANCE
+# posicional (até onde o grafo k=6 enxerga). "lag" puro = lag4 em L=32.
 # NOTA DE ALINHAMENTO (armadilha documentada 30/09, análise Claude CEL-2.001):
 # `train_run` usa loss(yb[:,1:], logits[:,:-1]) e make_task devolve (seq[:-1], seq[1:]).
 # Efeito líquido: alvo(p) = seq[p+2]. Toda tarefa nova TEM que ser desenhada contra
@@ -53,7 +55,12 @@ def _rng(seed):
 
 def make_task(name, V, L, B, seed):
     """Um lote (x, y) da tarefa. Para 'mem' o lote é FIXO por seed (controle do antigo)."""
+    import re
     rng = _rng(seed)
+    base, jsuffix = name, None
+    m = re.fullmatch(r"lag(\d+)", name)
+    if m:
+        base, jsuffix = "lag", int(m.group(1))
     if name == "mem":
         x = rng.integers(0, V, size=(B, L))
         return tf.constant(x, tf.int32), tf.constant(x, tf.int32)
@@ -74,13 +81,14 @@ def make_task(name, V, L, B, seed):
         seq = np.concatenate([t, t], axis=1)[:, :L]          # [t, t] truncado a L
         return tf.constant(seq[:, :-1], tf.int32), tf.constant(seq[:, 1:], tf.int32)
 
-    if name == "lag":
+    if base == "lag":
         # y_t = s_{t-j} (eco com atraso fixo j). Exige ROTEAMENTO POSICIONAL: o mix de
         # grafo entrega s_{t-j} na posição t. Sem mistura (layer_scale=0) é impossível,
         # porque o FFN é position-wise e o residual mantém s_t. Não é memorizável
         # (lote novo a cada passo). Posições t<j recebem alvo-sentinela 0 (posição conhecida
         # via position embedding) -> previsível, não infla o sinal.
-        j = max(1, L // 8)
+        j = jsuffix if jsuffix is not None else max(1, L // 8)
+        j = min(j, L - 1)
         s = rng.integers(1, V, size=(B, L))        # 1..V-1 (0 reservado p/ sentinela)
         y = np.zeros_like(s)
         y[:, j:] = s[:, :-j]
@@ -112,9 +120,11 @@ def make_env(name, V, L, B, seed, n_val=8):
 
     Retorna (batch_fn, val_x, val_y, meta). ``batch_fn(step)`` devolve um lote novo.
     Para 'mem' o lote NÃO varia (é o controle) — comparabilidade com o harness antigo.
-    """
-    if name not in TASKS:
-        raise ValueError(f"tarefa desconhecida: {name!r} (use uma de {TASKS})")
+    Nomes lagJ (ex.: lag12) valem como lag com atraso J nominal (= J−2 efetivo,
+    dado o deslocamento +2 do harness: alvo(p) = y[p+1] com y[t] = s[t−j])."""
+    import re
+    if name not in TASKS and not re.fullmatch(r"lag\d+", name):
+        raise ValueError(f"tarefa desconhecida: {name!r} (use uma de {TASKS} ou lagJ)")
 
     if name == "mem":
         x, y = make_task(name, V, L, B, seed)
